@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hause - Streaming Platform</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo"><a href="">Hause</a></div>
+        <div class="nav-right">
+            <div class="search-container">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" placeholder="Search...">
+            </div>
+            
+            <div class="v-divider"></div>
+            
+            <div id="themeToggle" style="cursor: none; display: flex; align-items: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/>
+                <path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7" />
+            </svg>
+        </div>
+            <i class="fas fa-bars hamburger" id="hamburgerBtn"></i>
+        </div>
+    </nav>
+    
+    <div class="mobile-menu" id="mobileMenu">
+    <a href="">Home</a>
+    <a href="">Categories</a>
+    <a href="">Live Cams</a>
+    <a href="">Premium</a>
+    <a href="" style="color: var(--primary-pink);">Sign In</a>
+</div>
+
+    <main>
+        <header class="hero">
+            <a href=""><img src="assets/img/-h9m46i.jpg" alt="Hero Banner"></a>
+            <div class="hero-content">
+                <p class="hero-text-small">Explore our platform</p>
+                <h1 class="hero-title">FOR FREE</h1>
+                <a href="" class="btn-watch-free">Watch Now</a>
+            </div>
+        </header>
+
+        <div class="filter-container">
+            <div class="filter-pill">
+                <div class="filter-item"><i class="fas fa-star"></i> <a href="">New</a></div>
+                <div class="filter-item"><i class="fas fa-fire"></i> <a href="">Trending</a></div>
+                <div class="filter-item" style="font-weight:800;"><i class="fa fa-film"></i> <a href="">For You</a></div>
+            </div>
+        </div>
+
+        <section class="category-section">
+            <div class="section-header">
+                <h2 class="section-title">Top Categories</h2>
+                <span class="see-all"><a href="">See all</a></span>
+            </div>
+            
+            <div class="slider-container">
+                <button class="scroll-btn prev-btn"><i class="fas fa-chevron-left"></i></button>
+                <div class="slider" id="slider-1">
+                    <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="assets/img/20260109_104544.jpg" alt="Cat">
+                            <div class="badge"><i class="fas fa-fire" style="color:orange;"></i></div>
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">Arab</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="https://placehold.co/600x338/111/444?text=Category+2" alt="Cat">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">Asian</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="https://placehold.co/600x338/111/444?text=Category+3" alt="Cat">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">Blonde</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="https://placehold.co/600x338/111/444?text=Category+4" alt="Cat">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">Brunette</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="https://placehold.co/600x338/111/444?text=Category+4" alt="Cat">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">Ebony</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="https://placehold.co/600x338/111/444?text=Category+4" alt="Cat">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">Interracial</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="https://placehold.co/600x338/111/444?text=Category+4" alt="Cat">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">Redhead</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="scroll-btn next-btn"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </section>
+
+        <section class="category-section">
+            <div class="section-header">
+                <h2 class="section-title">Recommended For You</h2>
+                <span class="see-all"><a href="">See all</a></span>
+            </div>
+            
+            <div class="slider-container">
+                <button class="scroll-btn prev-btn"><i class="fas fa-chevron-left"></i></button>
+                <div class="slider" id="slider-2">
+                    
+                    <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="https://placehold.co/800x450/222/555?text=Featured+Recommendation" alt="Rec">                          
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="https://placehold.co/600x338/111/444?text=Rec+2" alt="Rec">
+                             <div class="badge">EL</div>
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">Late Night Tales</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="scroll-btn next-btn"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </section>
+
+        <section class="category-section">
+            <div class="section-header">
+                <h2 class="section-title">Latest Releases</h2>
+                <span class="see-all"><a href="">See all</a></span>
+            </div>
+            
+            <div class="slider-container">
+                <button class="scroll-btn prev-btn"><i class="fas fa-chevron-left"></i></button>
+                <div class="slider" id="slider-3">
+                    <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="https://placehold.co/600x338/000/333?text=New+Release" alt="New">
+                            <div class="badge"><i class="fas fa-star"></i> <i class="fas fa-fire"></i></div>
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">Bottom of my Heart</div>
+                        </div>
+                    </div>
+
+                     <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="https://placehold.co/600x338/000/333?text=Roll+%26+Kiss" alt="New">
+                            <div class="badge"><i class="fas fa-star"></i></div>
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">Roll & Kiss: Game Night</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="thumb-wrapper">
+                            <img src="https://placehold.co/600x338/000/333?text=Siesta+Sun" alt="New">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">The Ski Instructor</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="scroll-btn next-btn"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="social-icons">
+            <a href=""><i class="fab fa-instagram"></i></a>
+            <a href=""><i class="fab fa-twitter"></i></a>
+            <a href=""><i class="fab fa-spotify"></i></a>
+            <a href=""><i class="fab fa-reddit-alien"></i></a>
+            <a href=""><i class="fab fa-linkedin"></i></a>
+        </div>
+        <p class="footer-text">&copy; 2005 - 2026 Hause Videodienste GmbH</p>
+        <p class="footer-text">Quellbornstr. 36. 65201 Wiesbaden - Germany Tel 0611 16898917</p>
+        <a href="" class="footer-text" style="color:#666; cursor: none;">18 U.S.C. 2257 Record-Keeping Requirements Compliance Statement</a>
+    </footer>
+    
+    <a href="#" class="fixed-watch-btn">
+        WATCH<br>FREE
+    </a>
+    
+    <div id="modalOverlay" class="modal-overlay"></div>
+    <div id="ageModal" class="custom-modal age-modal">
+        <div class="modal-header-center">
+            <h2 class="modal-title-serif">HAUSE</h2>
+        </div>
+        <div class="age-content">
+            <p class="warning-text"><strong>xxHause</strong> is an adult-only website</p>
+            <p class="legal-text"> This website is strictly limited to those over 18 or of legal age in your jurisdiction, whichever is greater.</p>
+            <p class="legal-text">To enter the website you must be 18 or older.</p>
+            <button id="ageEnterBtn" class="btn-full-pink">I'M 18 OR OLDER - ENTER</button>
+            <a href="" id="ageExitBtn" class="exit-link">I'm less than 18 - Exit</a>
+        </div>
+    </div>
+    
+    <div id="cookieModal" class="custom-modal cookie-modal">
+        <div class="cookie-header">
+            <h3>Privacy Preferences</h3>
+            <p class="cookie-desc"> Cookies Consent: By clicking “Accept all cookies”, you’re giving your consent to the storing of cookies on your device to enhance website navigation, analyze site usage and support our marketing campaigns. Details in our <span style="color:#00ff88; cursor: none;">Cookies Policy</span>.</p>
+        </div>        
+        <div class="cookie-options">
+            <div class="cookie-group">
+                <div class="cookie-row">
+                    <div class="cookie-label">
+                        <i class="fas fa-angle-down"></i> 
+                        <span>Strictly Necessary</span>
+                    </div>
+                    <span class="status-text">Always Active</span>
+                </div>
+                <div class="cookie-details">These cookies are essential for you to browse the website and use its features, such as accessing secure areas of the site.
+                </div>
+            </div>
+            <div class="cookie-group">
+                <div class="cookie-row">
+                    <div class="cookie-label">
+                        <i class="fas fa-angle-down"></i> 
+                        <span>Preferences</span>
+                    </div>
+                    <label class="switch" onclick="event.stopPropagation()">
+                        <input type="checkbox">
+                        <span class="slider-toggle"></span>
+                    </label>
+                </div>
+                <div class="cookie-details">These cookies allow our website to remember choices you have made in the past, like what language you prefer or remember your login.
+                </div>
+            </div>
+            <div class="cookie-group">
+                <div class="cookie-row">
+                    <div class="cookie-label">
+                        <i class="fas fa-angle-down"></i> 
+                        <span>Statistics</span>
+                    </div>
+                    <label class="switch" onclick="event.stopPropagation()">
+                        <input type="checkbox">
+                        <span class="slider-toggle"></span>
+                    </label>
+                </div>
+                <div class="cookie-details">These cookies help us understand your interactions with our website, such as which pages you visit and what links you click, without identifying you personally.
+                </div>
+            </div>
+            <div class="cookie-group">
+                <div class="cookie-row">
+                    <div class="cookie-label">
+                        <i class="fas fa-angle-down"></i> 
+                        <span>Marketing</span>
+                    </div>
+                    <label class="switch" onclick="event.stopPropagation()">
+                        <input type="checkbox">
+                        <span class="slider-toggle"></span>
+                    </label>
+                </div>
+                <div class="cookie-details">These cookies monitor your online actions to aid in delivering ads that are more suited to your interests, and to control the frequency of ads you see.
+                </div>
+            </div>
+        </div>
+        
+        <div class="cookie-actions">
+            <button id="cookieSelectBtn" class="btn-gray">ACCEPT SELECTION</button>
+            <button id="cookieAcceptBtn" class="btn-full-pink">ACCEPT ALL COOKIES</button>
+        </div>
+    </div>
+
+    <script src="assets/js/script.js"></script>    
+</body>
+</html>
