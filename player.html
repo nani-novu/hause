@@ -155,8 +155,8 @@ body.light-theme .btn-share {
     width: 100%;
     height: 100%;
     /* background: transparent; */
-    background: rgba(0,0,0,0.4);
-    z-index: 100;
+    background: rgba(0,0,0,0.6);
+    z-index: 9999 !important;
     display: none;
     flex-direction: column;
     align-items: center;
@@ -165,9 +165,9 @@ body.light-theme .btn-share {
 }
 
 .video-wrapper.blur-active video,
-.video-wrapper.blur-active .fluid_controls_container,
-.video-wrapper.blur-active .fluid_poster_image_container {
-    filter: blur(10px);
+.video-wrapper.blur-active .fluid_video_wrapper, 
+.video-wrapper.blur-active .fluid_controls_container {
+    filter: blur(15px);
     pointer-events: none;
 }
 
@@ -445,7 +445,7 @@ body.light-theme .btn-share {
         </div>
 
         <!-- Video Player Wrapper -->
-<div class="video-wrapper">
+<div class="video-wrapper" id="videoWrapper">
     <!-- HD Overlay -->
     <div class="hd-badge">HD</div>
     
@@ -546,7 +546,7 @@ body.light-theme .btn-share {
 
     <!-- Player Specific Script -->
     <script>
-document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', () => {
     
     // --- CONFIG ---
     const AD_URL = "https://ey43.com/4/10246098"; 
@@ -556,18 +556,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- STATE ---
     let isVideoUnlocked = sessionStorage.getItem(`${VIDEO_ID}_play`) === 'true'; 
     let isDownloadUnlocked = sessionStorage.getItem(`${VIDEO_ID}_dl`) === 'true';
-    
-    let pendingAction = null; 
-    let requiredWatchTime = 3000; // Actual watch time required
-    let loadBufferTime = 2000;    // Time to wait for ad to "load" before counting
-    
-    let redirectStartTime = 0;    // When the countdown actually starts
-    let isRedirecting = false;
-    let currentPillTextElement = null;
-    let adWindow = null; 
+    let adWindow = null;
+    let redirectInterval = null;
 
     // --- ELEMENTS ---
-    const videoWrapper = document.getElementById('videoWrapper'); 
+    const videoWrapper = document.getElementById('videoWrapper');
     const playOverlay = document.getElementById('inPlayerAd');
     const playPillBtn = document.getElementById('playAdPill');
     const playAdText = document.getElementById('playAdText');
@@ -575,54 +568,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadContainer = document.getElementById('downloadAdContainer');
     const downloadPillBtn = document.getElementById('downloadAdPill');
     const downloadAdText = document.getElementById('downloadAdText');
-    
-    // Direct access to video tag for resetting time
-    const mainVideoTag = document.querySelector('#hause-player video');
+
+    // ERROR CHECK: Stop script if ID is missing
+    if (!videoWrapper) {
+        console.error("CRITICAL ERROR: <div id='videoWrapper'> not found in HTML.");
+        return;
+    }
 
     // --- FLUID PLAYER INIT ---
     var myFP = fluidPlayer(
         'hause-player', {
             "layoutControls": {
                 "controlBar": { "autoHide": true, "animated": true },
-                "autoPlay": false,
+                "autoPlay": false, 
                 "mute": false,
                 "playButtonShowing": true,
                 "playPauseAnimation": true,
-                "fillToContainer": true,
-                "posterImage": "" 
+                "fillToContainer": true
             }
         }
     );
 
-    // Initial Check
-    if(isVideoUnlocked) {
+    // If unlocked, ensure clean state
+    if (isVideoUnlocked) {
         playOverlay.style.display = 'none';
         videoWrapper.classList.remove('blur-active');
     }
 
     // --------------------------------------------------
-    // 1. PLAY BUTTON LOGIC
+    // 1. PLAY BUTTON LOGIC (The "Trap")
     // --------------------------------------------------
     myFP.on('play', function() {
         if (!isVideoUnlocked) {
-            // 1. Pause immediately
+            // IMMEDIATE PAUSE & BLUR
             myFP.pause();
-            
-            // 2. FORCE BLUR IMMEDIATELY
             videoWrapper.classList.add('blur-active');
-
-            // 3. Set State
-            pendingAction = 'play';
-            requiredWatchTime = 3000; 
-            currentPillTextElement = playAdText;
-            playAdText.innerText = "Watch AD for 3 seconds to unlock video";
             
-            // 4. Show Overlay
+            // Show Overlay
             playOverlay.style.display = 'flex';
+            
+            // Reset Text
+            playAdText.innerText = "Watch AD for 3 seconds to unlock video";
         }
     });
 
-    playPillBtn.addEventListener('click', () => initiateAdSequence());
+    playPillBtn.addEventListener('click', () => {
+        runAdSequence('play', 3000, playAdText);
+    });
 
     // --------------------------------------------------
     // 2. DOWNLOAD BUTTON LOGIC
@@ -630,152 +622,107 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.btn-download').addEventListener('click', (e) => {
         if (!isDownloadUnlocked) {
             e.preventDefault();
-            pendingAction = 'download';
-            requiredWatchTime = 5000; 
-            currentPillTextElement = downloadAdText;
-            downloadAdText.innerText = "Watch AD for 5 seconds to download video";
             downloadContainer.style.display = 'block';
+            downloadAdText.innerText = "Watch AD for 5 seconds to download video";
+            // Scroll to it
             downloadContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
-            e.preventDefault();
             startDownload();
         }
     });
 
-    downloadPillBtn.addEventListener('click', () => initiateAdSequence());
+    downloadPillBtn.addEventListener('click', () => {
+        runAdSequence('download', 5000, downloadAdText);
+    });
 
     // --------------------------------------------------
-    // AD SEQUENCE LOGIC
+    // CORE AD SEQUENCE (Opening & Closing)
     // --------------------------------------------------
-    function initiateAdSequence() {
-        if (isRedirecting) return;
-        isRedirecting = true;
-
-        if (currentPillTextElement) currentPillTextElement.innerText = "Opening Ad...";
-
-        // 1. Open the Window
+    function runAdSequence(actionType, requiredTime, textElement) {
+        
+        // 1. Feedback
+        textElement.innerText = "Opening Ad...";
+        
+        // 2. Open Ad
         adWindow = window.open(AD_URL, '_blank');
 
-        // Check for blocker
         if (!adWindow || adWindow.closed || typeof adWindow.closed == 'undefined') { 
-            alert('Please allow popups to unlock this content.');
-            isRedirecting = false;
-            if (currentPillTextElement) currentPillTextElement.innerText = "Popup blocked. Try again.";
+            alert('Popup blocked! Please allow popups for this site.');
+            textElement.innerText = "Popup blocked. Try again.";
             return;
         }
 
-        // 2. WAIT for "Load Buffer" (Simulating load time)
-        if (currentPillTextElement) currentPillTextElement.innerText = "Waiting for Ad to load...";
+        // 3. Simulating "Loading..."
+        textElement.innerText = "Ad Loading... Please wait.";
         
         setTimeout(() => {
-            // 3. Start the actual Countdown
-            redirectStartTime = Date.now();
-            if (currentPillTextElement) currentPillTextElement.innerText = "Watching Ad...";
-
-            // Schedule the Auto-Close
-            setTimeout(() => {
-                checkCompletion(true); // 'true' means force close the window
-            }, requiredWatchTime);
-
-        }, loadBufferTime); // Wait 2 seconds before starting timer
-    }
-
-    // --------------------------------------------------
-    // CHECK COMPLETION (Runs on Auto-Close OR User Return)
-    // --------------------------------------------------
-    function checkCompletion(autoClose = false) {
-        if (!isRedirecting || redirectStartTime === 0) return;
-
-        const elapsed = Date.now() - redirectStartTime;
-
-        if (elapsed >= requiredWatchTime) {
-            // SUCCESS
-            if (autoClose && adWindow) {
-                adWindow.close();
-                window.focus();
-            }
-            handleSuccess();
-        } else {
-            // NOT DONE YET
-            const remaining = Math.ceil((requiredWatchTime - elapsed) / 1000);
-            if (currentPillTextElement) {
-                currentPillTextElement.innerText = `Keep watching! ${remaining}s remaining...`;
-            }
+            // 4. Start Countdown
+            let timeLeft = requiredTime / 1000;
             
-            // If the user manually came back too early, we leave isRedirecting = true
-            // so the logic continues if they click again or wait.
-            // But if the window was closed manually, we might need to reset.
-            if (adWindow && adWindow.closed) {
-                 // User closed ad early manually
-                 if (currentPillTextElement) currentPillTextElement.innerText = "Ad closed too early. Try again.";
-                 isRedirecting = false;
-                 redirectStartTime = 0;
-            }
-        }
+            // Clear any existing interval
+            if (redirectInterval) clearInterval(redirectInterval);
+
+            redirectInterval = setInterval(() => {
+                timeLeft--;
+                textElement.innerText = `Watching Ad... ${timeLeft}s`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(redirectInterval);
+                    finishSequence(actionType);
+                }
+            }, 1000);
+
+        }, 1500); // 1.5s delay before countdown starts
     }
 
-    // --------------------------------------------------
-    // USER RETURN DETECTOR (Fixes "Stuck on Verifying")
-    // --------------------------------------------------
-    document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible" && isRedirecting) {
-            // User came back manually. Check if they waited long enough.
-            checkCompletion(false);
+    function finishSequence(actionType) {
+        // 1. Close Ad Window (Redirect Back)
+        if (adWindow) {
+            adWindow.close();
+            window.focus();
         }
-    });
 
-    function handleSuccess() {
-        isRedirecting = false;
-        redirectStartTime = 0;
-
-        if (pendingAction === 'play') {
+        // 2. Handle Action
+        if (actionType === 'play') {
             isVideoUnlocked = true;
             sessionStorage.setItem(`${VIDEO_ID}_play`, 'true');
             
-            // UI Updates
-            videoWrapper.classList.remove('blur-active');
+            // Remove UI
             playOverlay.style.display = 'none';
+            videoWrapper.classList.remove('blur-active');
             
-            // Reset Video to 0:00 and Play
-            // Note: FluidPlayer wraps the video tag, so we might need to access the internal video tag
-            const vTags = document.getElementsByTagName('video');
-            if(vTags.length > 0) {
-                vTags[0].currentTime = 0;
-            }
-            myFP.play();
+            // Play Video
+            setTimeout(() => myFP.play(), 500); 
         } 
-        else if (pendingAction === 'download') {
+        else if (actionType === 'download') {
             isDownloadUnlocked = true;
             sessionStorage.setItem(`${VIDEO_ID}_dl`, 'true');
             
-            // UI Updates
+            // Hide UI
             downloadContainer.style.display = 'none';
             
-            // Start Download
+            // Download
             startDownload();
         }
-        
-        pendingAction = null;
     }
 
     function startDownload() {
         const a = document.createElement('a');
         a.href = VIDEO_SRC;
-        a.setAttribute('download', 'video_download.mp4'); 
-        a.setAttribute('target', '_blank'); 
+        a.download = 'video.mp4';
+        a.target = '_blank';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
     }
-
-    // --- VIEW COUNTER ---
+    
+    // View Counter Logic
     const viewDisplay = document.getElementById('viewCounter');
-    let views = localStorage.getItem('hause_views_' + VIDEO_ID);
-    if(!views) views = 13467;
-    else views = parseInt(views) + 1;
+    let views = localStorage.getItem('hause_views_' + VIDEO_ID) || 13467;
+    views = parseInt(views) + 1;
     localStorage.setItem('hause_views_' + VIDEO_ID, views);
     viewDisplay.innerText = views.toLocaleString();
 });
-    </script>
+</script>
 </body>
 </html>
