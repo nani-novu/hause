@@ -558,10 +558,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDownloadUnlocked = sessionStorage.getItem(`${VIDEO_ID}_dl`) === 'true';
     
     let pendingAction = null; 
-    let currentRequiredTime = 3000;
+    let requiredWatchTime = 3000; // Actual watch time required
+    let loadBufferTime = 2000;    // Time to wait for ad to "load" before counting
+    
+    let redirectStartTime = 0;    // When the countdown actually starts
     let isRedirecting = false;
     let currentPillTextElement = null;
-    let adWindow = null; // Reference to the ad window
+    let adWindow = null; 
 
     // --- ELEMENTS ---
     const videoWrapper = document.getElementById('videoWrapper'); 
@@ -572,6 +575,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadContainer = document.getElementById('downloadAdContainer');
     const downloadPillBtn = document.getElementById('downloadAdPill');
     const downloadAdText = document.getElementById('downloadAdText');
+    
+    // Direct access to video tag for resetting time
+    const mainVideoTag = document.querySelector('#hause-player video');
 
     // --- FLUID PLAYER INIT ---
     var myFP = fluidPlayer(
@@ -583,12 +589,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 "playButtonShowing": true,
                 "playPauseAnimation": true,
                 "fillToContainer": true,
-                "posterImage": "" // Add a poster image URL here if you have one
+                "posterImage": "" 
             }
         }
     );
 
-    // Initial State Check
+    // Initial Check
     if(isVideoUnlocked) {
         playOverlay.style.display = 'none';
         videoWrapper.classList.remove('blur-active');
@@ -599,17 +605,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // --------------------------------------------------
     myFP.on('play', function() {
         if (!isVideoUnlocked) {
+            // 1. Pause immediately
             myFP.pause();
+            
+            // 2. FORCE BLUR IMMEDIATELY
+            videoWrapper.classList.add('blur-active');
+
+            // 3. Set State
             pendingAction = 'play';
-            currentRequiredTime = 3000; // 3 Seconds
+            requiredWatchTime = 3000; 
             currentPillTextElement = playAdText;
             playAdText.innerText = "Watch AD for 3 seconds to unlock video";
+            
+            // 4. Show Overlay
             playOverlay.style.display = 'flex';
-            videoWrapper.classList.add('blur-active');
         }
     });
 
-    playPillBtn.addEventListener('click', () => initiateAutoRedirect());
+    playPillBtn.addEventListener('click', () => initiateAdSequence());
 
     // --------------------------------------------------
     // 2. DOWNLOAD BUTTON LOGIC
@@ -618,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isDownloadUnlocked) {
             e.preventDefault();
             pendingAction = 'download';
-            currentRequiredTime = 5000; // 5 Seconds
+            requiredWatchTime = 5000; 
             currentPillTextElement = downloadAdText;
             downloadAdText.innerText = "Watch AD for 5 seconds to download video";
             downloadContainer.style.display = 'block';
@@ -629,58 +642,92 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    downloadPillBtn.addEventListener('click', () => initiateAutoRedirect());
+    downloadPillBtn.addEventListener('click', () => initiateAdSequence());
 
     // --------------------------------------------------
-    // AUTO-CLOSE / REDIRECT LOGIC
+    // AD SEQUENCE LOGIC
     // --------------------------------------------------
-    function initiateAutoRedirect() {
+    function initiateAdSequence() {
         if (isRedirecting) return;
         isRedirecting = true;
 
-        if (currentPillTextElement) {
-            currentPillTextElement.innerText = "Ad opening... please wait.";
+        if (currentPillTextElement) currentPillTextElement.innerText = "Opening Ad...";
+
+        // 1. Open the Window
+        adWindow = window.open(AD_URL, '_blank');
+
+        // Check for blocker
+        if (!adWindow || adWindow.closed || typeof adWindow.closed == 'undefined') { 
+            alert('Please allow popups to unlock this content.');
+            isRedirecting = false;
+            if (currentPillTextElement) currentPillTextElement.innerText = "Popup blocked. Try again.";
+            return;
         }
 
-        // Small delay to let the user read the text
+        // 2. WAIT for "Load Buffer" (Simulating load time)
+        if (currentPillTextElement) currentPillTextElement.innerText = "Waiting for Ad to load...";
+        
         setTimeout(() => {
-            // 1. Open the Ad
-            adWindow = window.open(AD_URL, '_blank');
-            
-            // Check for Popup Blocker
-            if (!adWindow || adWindow.closed || typeof adWindow.closed == 'undefined') { 
-                alert('Please allow popups to unlock this content.');
-                isRedirecting = false;
-                if(currentPillTextElement) currentPillTextElement.innerText = "Popup blocked. Try again.";
-                return;
-            }
+            // 3. Start the actual Countdown
+            redirectStartTime = Date.now();
+            if (currentPillTextElement) currentPillTextElement.innerText = "Watching Ad...";
 
-            // Update text to show countdown status
-            if(currentPillTextElement) currentPillTextElement.innerText = "Verifying Ad...";
-
-            // 2. Start the Countdown
+            // Schedule the Auto-Close
             setTimeout(() => {
-                // Time is up! 
-                
-                // Attempt to close the Ad Window (Bringing user back here)
-                if (adWindow) {
-                    adWindow.close();
-                }
+                checkCompletion(true); // 'true' means force close the window
+            }, requiredWatchTime);
 
-                // Focus this window (Browser dependent, but worth trying)
-                window.focus();
-
-                // Unlock the content
-                handleSuccess();
-
-            }, currentRequiredTime); // Waits for 3000ms or 5000ms
-
-        }, 500);
+        }, loadBufferTime); // Wait 2 seconds before starting timer
     }
+
+    // --------------------------------------------------
+    // CHECK COMPLETION (Runs on Auto-Close OR User Return)
+    // --------------------------------------------------
+    function checkCompletion(autoClose = false) {
+        if (!isRedirecting || redirectStartTime === 0) return;
+
+        const elapsed = Date.now() - redirectStartTime;
+
+        if (elapsed >= requiredWatchTime) {
+            // SUCCESS
+            if (autoClose && adWindow) {
+                adWindow.close();
+                window.focus();
+            }
+            handleSuccess();
+        } else {
+            // NOT DONE YET
+            const remaining = Math.ceil((requiredWatchTime - elapsed) / 1000);
+            if (currentPillTextElement) {
+                currentPillTextElement.innerText = `Keep watching! ${remaining}s remaining...`;
+            }
+            
+            // If the user manually came back too early, we leave isRedirecting = true
+            // so the logic continues if they click again or wait.
+            // But if the window was closed manually, we might need to reset.
+            if (adWindow && adWindow.closed) {
+                 // User closed ad early manually
+                 if (currentPillTextElement) currentPillTextElement.innerText = "Ad closed too early. Try again.";
+                 isRedirecting = false;
+                 redirectStartTime = 0;
+            }
+        }
+    }
+
+    // --------------------------------------------------
+    // USER RETURN DETECTOR (Fixes "Stuck on Verifying")
+    // --------------------------------------------------
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && isRedirecting) {
+            // User came back manually. Check if they waited long enough.
+            checkCompletion(false);
+        }
+    });
 
     function handleSuccess() {
         isRedirecting = false;
-        
+        redirectStartTime = 0;
+
         if (pendingAction === 'play') {
             isVideoUnlocked = true;
             sessionStorage.setItem(`${VIDEO_ID}_play`, 'true');
@@ -689,7 +736,12 @@ document.addEventListener('DOMContentLoaded', () => {
             videoWrapper.classList.remove('blur-active');
             playOverlay.style.display = 'none';
             
-            // Auto Play the video
+            // Reset Video to 0:00 and Play
+            // Note: FluidPlayer wraps the video tag, so we might need to access the internal video tag
+            const vTags = document.getElementsByTagName('video');
+            if(vTags.length > 0) {
+                vTags[0].currentTime = 0;
+            }
             myFP.play();
         } 
         else if (pendingAction === 'download') {
