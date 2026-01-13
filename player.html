@@ -546,18 +546,23 @@ body.light-theme .btn-share {
 
     <!-- Player Specific Script -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     
-    // --- CONFIG ---
+    // --- CONFIGURATION ---
     const AD_URL = "https://ey43.com/4/10246098"; 
     const VIDEO_SRC = "assets/img/Zeo8WYpFtg8ut45H.mp4";
     const VIDEO_ID = "vid_123"; 
+    const UNLOCK_DURATION = 10 * 60 * 1000; // 10 Minutes in milliseconds
 
-    // --- STATE ---
-    let isVideoUnlocked = sessionStorage.getItem(`${VIDEO_ID}_play`) === 'true'; 
-    let isDownloadUnlocked = sessionStorage.getItem(`${VIDEO_ID}_dl`) === 'true';
+    // --- STATE MANAGEMENT ---
     let adWindow = null;
-    let redirectInterval = null;
+    let sequenceState = {
+        isActive: false,
+        startTime: 0,
+        requiredTime: 0,
+        actionType: null, // 'play' or 'download'
+        textElement: null
+    };
 
     // --- ELEMENTS ---
     const videoWrapper = document.getElementById('videoWrapper');
@@ -569,11 +574,26 @@ body.light-theme .btn-share {
     const downloadPillBtn = document.getElementById('downloadAdPill');
     const downloadAdText = document.getElementById('downloadAdText');
 
-    // ERROR CHECK: Stop script if ID is missing
-    if (!videoWrapper) {
-        console.error("CRITICAL ERROR: <div id='videoWrapper'> not found in HTML.");
-        return;
+    // --- HELPER: CHECK IF UNLOCKED (10 MIN EXPIRY) ---
+    function checkUnlockStatus(type) {
+        const storedKey = `hause_unlock_${VIDEO_ID}_${type}`; // e.g., hause_unlock_vid123_play
+        const timestamp = localStorage.getItem(storedKey);
+        
+        if (!timestamp) return false;
+
+        const now = Date.now();
+        // Check if current time is within 10 minutes of stored time
+        if ((now - parseInt(timestamp)) < UNLOCK_DURATION) {
+            return true;
+        } else {
+            // Expired
+            localStorage.removeItem(storedKey);
+            return false;
+        }
     }
+
+    let isVideoUnlocked = checkUnlockStatus('play');
+    let isDownloadUnlocked = checkUnlockStatus('download');
 
     // --- FLUID PLAYER INIT ---
     var myFP = fluidPlayer(
@@ -589,31 +609,26 @@ body.light-theme .btn-share {
         }
     );
 
-    // If unlocked, ensure clean state
+    // Initial UI Setup based on unlock status
     if (isVideoUnlocked) {
         playOverlay.style.display = 'none';
         videoWrapper.classList.remove('blur-active');
     }
 
     // --------------------------------------------------
-    // 1. PLAY BUTTON LOGIC (The "Trap")
+    // 1. PLAY BUTTON LOGIC
     // --------------------------------------------------
     myFP.on('play', function() {
         if (!isVideoUnlocked) {
-            // IMMEDIATE PAUSE & BLUR
             myFP.pause();
             videoWrapper.classList.add('blur-active');
-            
-            // Show Overlay
             playOverlay.style.display = 'flex';
-            
-            // Reset Text
             playAdText.innerText = "Watch AD for 3 seconds to unlock video";
         }
     });
 
     playPillBtn.addEventListener('click', () => {
-        runAdSequence('play', 3000, playAdText);
+        startAdSequence('play', 3000, playAdText);
     });
 
     // --------------------------------------------------
@@ -624,86 +639,130 @@ body.light-theme .btn-share {
             e.preventDefault();
             downloadContainer.style.display = 'block';
             downloadAdText.innerText = "Watch AD for 5 seconds to download video";
-            // Scroll to it
             downloadContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
-            startDownload();
+            // If already unlocked (and active), standard link behavior takes over
+             // or we force it:
+             e.preventDefault();
+             startDownload();
         }
     });
 
     downloadPillBtn.addEventListener('click', () => {
-        runAdSequence('download', 5000, downloadAdText);
+        startAdSequence('download', 5000, downloadAdText);
     });
 
     // --------------------------------------------------
-    // CORE AD SEQUENCE (Opening & Closing)
+    // CORE AD SEQUENCE
     // --------------------------------------------------
-    function runAdSequence(actionType, requiredTime, textElement) {
+    function startAdSequence(type, time, textElem) {
+        if (sequenceState.isActive) return; // Prevent double clicks
         
-        // 1. Feedback
-        textElement.innerText = "Opening Ad...";
+        sequenceState.isActive = true;
+        sequenceState.actionType = type;
+        sequenceState.requiredTime = time;
+        sequenceState.textElement = textElem;
+
+        // STEP 1: Pre-Redirect Messages (Better UX)
+        textElem.innerText = "Redirecting to Ad Partner...";
         
-        // 2. Open Ad
+        setTimeout(() => {
+            textElem.innerText = "Ad loading... Please wait.";
+            
+            setTimeout(() => {
+                // STEP 2: Open Window
+                launchAdWindow();
+            }, 1000); // 1 second "Loading" text
+            
+        }, 800); // 0.8 second "Redirecting" text
+    }
+
+    function launchAdWindow() {
         adWindow = window.open(AD_URL, '_blank');
 
         if (!adWindow || adWindow.closed || typeof adWindow.closed == 'undefined') { 
-            alert('Popup blocked! Please allow popups for this site.');
-            textElement.innerText = "Popup blocked. Try again.";
+            alert('Popup blocked! Please allow popups.');
+            sequenceState.textElement.innerText = "Popup blocked. Try again.";
+            sequenceState.isActive = false;
             return;
         }
 
-        // 3. Simulating "Loading..."
-        textElement.innerText = "Ad Loading... Please wait.";
-        
+        // STEP 3: Start Timer
+        sequenceState.startTime = Date.now();
+        sequenceState.textElement.innerText = "Watching Ad...";
+
+        // Schedule Auto-Close
         setTimeout(() => {
-            // 4. Start Countdown
-            let timeLeft = requiredTime / 1000;
-            
-            // Clear any existing interval
-            if (redirectInterval) clearInterval(redirectInterval);
-
-            redirectInterval = setInterval(() => {
-                timeLeft--;
-                textElement.innerText = `Watching Ad... ${timeLeft}s`;
-
-                if (timeLeft <= 0) {
-                    clearInterval(redirectInterval);
-                    finishSequence(actionType);
-                }
-            }, 1000);
-
-        }, 1500); // 1.5s delay before countdown starts
+            checkCompletion(true); // 'true' = attempt to close window
+        }, sequenceState.requiredTime);
     }
 
-    function finishSequence(actionType) {
-        // 1. Close Ad Window (Redirect Back)
-        if (adWindow) {
-            adWindow.close();
-            window.focus();
+    // --------------------------------------------------
+    // CHECK COMPLETION & EARLY RETURN LOGIC
+    // --------------------------------------------------
+    
+    // Check if user came back manually
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && sequenceState.isActive && sequenceState.startTime > 0) {
+            checkCompletion(false);
         }
+    });
 
-        // 2. Handle Action
-        if (actionType === 'play') {
-            isVideoUnlocked = true;
-            sessionStorage.setItem(`${VIDEO_ID}_play`, 'true');
+    function checkCompletion(autoClose) {
+        if (!sequenceState.isActive) return;
+
+        const elapsed = Date.now() - sequenceState.startTime;
+
+        if (elapsed >= sequenceState.requiredTime) {
+            // --- SUCCESS SEQUENCE ---
             
-            // Remove UI
+            // 1. Close Ad Window
+            if (autoClose && adWindow) {
+                adWindow.close();
+                window.focus();
+            }
+
+            // 2. Show "Verifying" (UX Request)
+            sequenceState.textElement.innerText = "Verifying Ad...";
+
+            // 3. Wait 0.5s then Unlock
+            setTimeout(() => {
+                finalizeUnlock();
+            }, 500);
+
+        } else {
+            // --- FAIL: TOO EARLY ---
+            if (!autoClose) { // Only show this if user came back manually, not on timer check
+                const remaining = Math.ceil((sequenceState.requiredTime - elapsed) / 1000);
+                sequenceState.textElement.innerText = `Too early! Watch for ${remaining} more second(s)`;
+            }
+        }
+    }
+
+    function finalizeUnlock() {
+        const type = sequenceState.actionType;
+        
+        // Save Timestamp (10 Minute Expiry)
+        localStorage.setItem(`hause_unlock_${VIDEO_ID}_${type}`, Date.now().toString());
+
+        if (type === 'play') {
+            isVideoUnlocked = true;
             playOverlay.style.display = 'none';
             videoWrapper.classList.remove('blur-active');
             
-            // Play Video
-            setTimeout(() => myFP.play(), 500); 
+            // Reset video to start and play
+            const vTags = document.getElementsByTagName('video');
+            if(vTags.length > 0) vTags[0].currentTime = 0;
+            myFP.play();
         } 
-        else if (actionType === 'download') {
+        else if (type === 'download') {
             isDownloadUnlocked = true;
-            sessionStorage.setItem(`${VIDEO_ID}_dl`, 'true');
-            
-            // Hide UI
             downloadContainer.style.display = 'none';
-            
-            // Download
             startDownload();
         }
+
+        // Reset State
+        sequenceState = { isActive: false, startTime: 0, requiredTime: 0, actionType: null, textElement: null };
     }
 
     function startDownload() {
@@ -716,13 +775,13 @@ body.light-theme .btn-share {
         document.body.removeChild(a);
     }
     
-    // View Counter Logic
+    // --- VIEW COUNTER ---
     const viewDisplay = document.getElementById('viewCounter');
     let views = localStorage.getItem('hause_views_' + VIDEO_ID) || 13467;
     views = parseInt(views) + 1;
     localStorage.setItem('hause_views_' + VIDEO_ID, views);
     viewDisplay.innerText = views.toLocaleString();
 });
-</script>
+    </script>
 </body>
 </html>
