@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Title - Hause</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.fluidplayer.com/v3/current/fluidplayer.min.css" type="text/css"/>
+    <style>
+        /* --- PLAYER PAGE STYLES --- */
+
+.player-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 1. Breadcrumbs with Truncation */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-gray);
+    margin-bottom: 20px;
+    white-space: nowrap;
+    overflow: hidden; /* Essential for truncation */
+}
+
+.crumb-link {
+    color: var(--text-gray);
+    flex-shrink: 0; /* Don't shrink Home or Category */
+}
+.crumb-link:hover { color: var(--primary-pink); }
+
+.crumb-sep { font-size: 10px; flex-shrink: 0; }
+
+.crumb-current {
+    color: var(--text-white);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adds the ... */
+    min-width: 0; /* Flexbox hack for text-overflow */
+}
+
+/* 2. Video Player Wrapper & Overlay */
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    /* Enforce 16:9 Aspect Ratio to prevent layout shifts */
+    aspect-ratio: 16 / 9; 
+    margin-bottom: 20px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    background: black;
+    z-index: 1;
+}
+
+/* Force Fluid Player to fill the wrapper exactly */
+.fluid_video_wrapper {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+}
+
+/* HD Badge Overlay */
+.hd-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 10; /* Above Fluid Player controls */
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--primary-pink);
+    color: var(--primary-pink);
+    padding: 2px 6px;
+    font-size: 12px;
+    font-weight: 800;
+    border-radius: 4px;
+    pointer-events: none; /* Let clicks pass through to player */
+}
+
+/* 3. Info & Views */
+.video-info-sec {
+    margin-bottom: 25px;
+}
+
+.video-main-title {
+    font-size: 20px; /* Responsive size */
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.3;
+    color: var(--text-white);
+}
+
+.view-counter-wrapper {
+    font-size: 14px;
+    color: var(--text-gray);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 4. Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.btn-action {
+    flex: 1; /* Equal width */
+    padding: 15px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.btn-action:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+.btn-download {
+    background-color: var(--primary-pink);
+    color: white;
+}
+
+.btn-share {
+    background-color: #2a2e3b; /* Dark Gray */
+    color: white;
+}
+/* Light mode override for Share button */
+body.light-theme .btn-share {
+    background-color: #e0e0e0;
+    color: #111;
+}
+
+.player-ad-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* background: transparent; */
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.video-wrapper.blur-active video,
+.video-wrapper.blur-active .fluid_controls_container,
+.video-wrapper.blur-active .fluid_poster_image_container {
+    filter: blur(10px);
+    pointer-events: none;
+}
+
+.download-ad-container {
+    display: none;
+    margin-bottom: 30px;
+    animation: fadeIn 0.5s ease;
+}
+    
+.download-ad-container .ad-pill-header {
+    width: 100%; /* Full width pill */
+    max-width: 500px; /* Optional cap */
+    margin: 0 auto; /* Center it */
+    cursor: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.player-ad-content {
+    background-color: transparent;
+    padding: 25px;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    /* box-shadow: 0 10px 30px rgba(0,0,0,0.5); */
+}
+
+/* The Pink Pill Header */
+.ad-pill-header {
+    background-color: #ffeaea;
+    border: 2px solid #ff4500;
+    border-radius: 50px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.ad-pill-icon {
+    background-color: #6d4c41;
+    color: white;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+}
+
+.ad-pill-text {
+    color: #000;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+/* Loading/Redirect State */
+.ad-loading-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.redirect-text {
+    color: var(--text-white);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Action Buttons */
+.ad-btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.btn-player-cancel {
+    flex: 1;
+    background-color: var(--input-bg);
+    color: var(--text-white);
+    border: 1px solid var(--divider);
+    padding: 12px;
+    border-radius: 50px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-player-unlock {
+    flex: 1;
+    background-color: #e6b85c;
+    color: #000;
+    border: none;
+    padding: 22px;
+    border-radius: 50px;
+    font-weight: bold;
+    cursor: none;
+}
+
+.btn-player-unlock:hover { background-color: #d4a540; }
+
+/* 5. Loader Spinner */
+.loader-container {
+    display: flex;
+    justify-content: center;
+    padding: 40px 0 20px 0;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-left-color: var(--primary-pink);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive Adjustments */
+@media (min-width: 768px) {
+    .video-main-title { font-size: 24px; }
+    .action-buttons { justify-content: flex-start; }
+    .btn-action { flex: 0 0 200px; } /* Fixed width on desktop */
+}
+
+/* --- AD UNLOCK MODAL STYLES --- */
+
+.ad-modal-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #f0f0f0; /* Light gray background like image */
+    padding: 20px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Red/Pink Pill Shape */
+.ad-header-box {
+    background-color: #ffeaea; /* Light pink bg */
+    border: 2px solid #ff4500; /* Orange/Red border */
+    border-radius: 50px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.ad-icon-wrapper {
+    background-color: #6d4c41; /* Brownish circle */
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.ad-text-content {
+    color: #000;
+    font-weight: 700;
+    font-size: 16px;
+    display: flex;
+    gap: 5px;
+    font-family: sans-serif;
+}
+
+.ad-counter {
+    color: #999;
+    font-weight: 400;
+}
+
+/* Feedback Text */
+.ad-feedback {
+    text-align: center;
+    color: #ff0055;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+/* Buttons */
+.ad-buttons-row {
+    display: flex;
+    gap: 15px;
+}
+
+.btn-ad-cancel {
+    flex: 1;
+    background-color: white;
+    color: #000;
+    border: none;
+    padding: 15px;
+    border-radius: 50px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btn-ad-unlock {
+    flex: 1;
+    background-color: #e6b85c; /* Gold/Mustard color */
+    color: #000;
+    border: none;
+    padding: 15px;
+    border-radius: 50px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btn-ad-unlock:hover {
+    background-color: #d4a540;
+}
+    </style>
+</head>
+<body>
+    
+    <!-- Navbar (Same as Index) -->
+    <nav class="navbar">
+        <div class="logo"><a href="index.html">Hause</a></div>
+        <div class="nav-right">
+            <div class="search-container">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" placeholder="Search...">
+            </div>
+            <div class="v-divider"></div>
+            <div id="themeToggle" style="cursor: pointer; display: flex; align-items: center;">
+                 <!-- SVG will be injected by script.js -->
+                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7" /></svg>
+            </div>
+            <i class="fas fa-bars hamburger" id="hamburgerBtn"></i>
+        </div>
+    </nav>
+    
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html">Home</a>
+        <a href="">Categories</a>
+        <a href="">Live Cams</a>
+        <a href="">Premium</a>
+        <a href="" style="color: var(--primary-pink);">Sign In</a>
+    </div>
+
+    <main class="player-container">
+        
+        <!-- Breadcrumbs -->
+        <div class="breadcrumb">
+            <a href="index.html" class="crumb-link">Home</a>
+            <i class="fas fa-chevron-right crumb-sep"></i>
+            <a href="#" class="crumb-link">Categories</a>
+            <i class="fas fa-chevron-right crumb-sep"></i>
+            <span class="crumb-current">My Best Friend's Hot Sister in the Kitchen</span>
+        </div>
+
+        <!-- Video Player Wrapper -->
+<div class="video-wrapper">
+    <!-- HD Overlay -->
+    <div class="hd-badge">HD</div>
+    
+    <!-- === IN-PLAYER AD OVERLAY === -->
+    <div id="inPlayerAd" class="player-ad-overlay">
+    <div class="player-ad-content">
+        <!-- The Pill Button -->
+        <button class="ad-pill-header" id="playAdPill">
+            <div class="ad-pill-icon"><i class="fas fa-play"></i></div>
+            <div class="ad-pill-text" id="playAdText">Watch AD for 3 seconds to unlock video</div>
+        </button>
+    </div>
+    </div>
+    <!-- === END OVERLAY === -->
+
+    <video id="hause-player">
+        <source src="assets/img/Zeo8WYpFtg8ut45H.mp4" data-fluid-hd title="1080p" type="video/mp4"/>
+    </video>
+</div>
+
+        <!-- Video Info -->
+        <div class="video-info-sec">
+            <h1 class="video-main-title">My Best Friend's Hot Sister in the Kitchen | 12:45</h1>
+            <div class="view-counter-wrapper">
+                <i class="fas fa-eye"></i> <span id="viewCounter">13, 467</span> views
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn-action btn-download">
+                <i class="fas fa-download"></i> Download
+            </button>
+            <button class="btn-action btn-share">
+                <i class="fas fa-share-nodes"></i> Share
+            </button>
+        </div>
+
+        <div id="downloadAdContainer" class="download-ad-container">
+    <button class="ad-pill-header" id="downloadAdPill">
+        <div class="ad-pill-icon"><i class="fas fa-download"></i></div>
+        <div class="ad-pill-text" id="downloadAdText">Watch AD for 5 seconds to download video</div>
+    </button>
+        </div>
+
+        <!-- Related Videos -->
+        <section class="category-section" style="margin-top: 40px; padding-left:0; padding-right:0;">
+            <div class="section-header" style="padding-left: 20px;">
+                <h2 class="section-title">Related Videos</h2>
+            </div>
+            
+            
+        <div class="loader-container">
+            <div class="spinner"></div>
+        </div>
+
+    </main>
+
+    <!-- Footer (Same as Index) -->
+    <footer>
+        <div class="social-icons">
+            <a href=""><i class="fab fa-instagram"></i></a>
+            <a href=""><i class="fab fa-twitter"></i></a>
+            <a href=""><i class="fab fa-spotify"></i></a>
+            <a href=""><i class="fab fa-reddit-alien"></i></a>
+            <a href=""><i class="fab fa-linkedin"></i></a>
+        </div>
+        <p class="footer-text">&copy; 2005 - 2026 Hause Videodienste GmbH</p>
+        <p class="footer-text">Quellbornstr. 36. 65201 Wiesbaden - Germany Tel 0611 16898917</p>
+        <a href="" class="footer-text" style="color:#666; cursor: none;">18 U.S.C. 2257 Record-Keeping Requirements Compliance Statement</a>
+    </footer>
+
+    <!-- Fixed Button -->
+    <a href="#" class="fixed-watch-btn">WATCH<br>FREE</a>
+
+    <!-- Modals (Copied for functionality) -->
+    <div id="modalOverlay" class="modal-overlay"></div>
+    <div id="ageModal" class="custom-modal age-modal">
+        <div class="modal-header-center"><h2 class="modal-title-serif">HAUSE</h2></div>
+        <div class="age-content">
+            <p class="warning-text"><strong>All Hause websites!</strong> <span style="color:#ccc">websites are gambling</span></p>
+            <p class="legal-text">This website is strictly limited to those over 18 or of legal age in your jurisdiction, whichever is greater.</p>
+            <button id="ageEnterBtn" class="btn-full-pink">I'M 18 OR OLDER - ENTER</button>
+            <a href="#" id="ageExitBtn" class="exit-link">I'm less than 18 - Exit</a>
+        </div>
+    </div>
+    <div id="cookieModal" class="custom-modal cookie-modal">
+        <div class="cookie-header"><h3>Privacy Preferences</h3><p class="cookie-desc">Cookies Consent...</p></div>
+        <div class="cookie-actions"><button id="cookieAcceptBtn" class="btn-full-pink">ACCEPT ALL COOKIES</button></div>
+    </div>
+    
+    
+
+    <!-- Fluid Player JS -->
+    <script src="https://cdn.fluidplayer.com/v3/current/fluidplayer.min.js"></script>
+    <!-- Main Script -->
+    <script src="assets/js/script.js"></script>
+
+    <!-- Player Specific Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // --- CONFIG ---
+        const AD_URL = "https://ey43.com/4/10246098"; 
+        const VIDEO_SRC = "assets/img/Zeo8WYpFtg8ut45H.mp4";
+        
+        // --- STATE ---
+        let isVideoUnlocked = false; // Tracks Play unlock
+        let isDownloadUnlocked = false; // Tracks Download unlock
+        
+        let adStartTime = 0;
+        let pendingAction = null; // 'play' or 'download'
+        let currentRequiredTime = 3000;
+        let isRedirecting = false;
+        let currentPillTextElement = null; // Tracks which text to update (Play vs Download)
+
+        // --- ELEMENTS ---
+        const videoWrapper = document.getElementById('videoWrapper');
+        const playOverlay = document.getElementById('inPlayerAd');
+        const playPillBtn = document.getElementById('playAdPill');
+        const playAdText = document.getElementById('playAdText');
+        
+        const downloadContainer = document.getElementById('downloadAdContainer');
+        const downloadPillBtn = document.getElementById('downloadAdPill');
+        const downloadAdText = document.getElementById('downloadAdText');
+
+        // --- FLUID PLAYER INIT ---
+        var myFP = fluidPlayer(
+            'hause-player',	{
+                "layoutControls": {
+                    "controlBar": { "autoHide": true, "animated": true },
+                    "autoPlay": false,
+                    "mute": false,
+                    "playButtonShowing": true,
+                    "playPauseAnimation": true,
+                    "fillToContainer": true, 
+                    "posterImage": ""
+                }
+            }
+        );
+
+        // --------------------------------------------------
+        // 1. PLAY BUTTON LOGIC (3 Seconds)
+        // --------------------------------------------------
+        myFP.on('play', function() {
+            if (!isVideoUnlocked) {
+                myFP.pause();
+                
+                // Set Context
+                pendingAction = 'play';
+                currentRequiredTime = 3000;
+                currentPillTextElement = playAdText;
+
+                // Reset Text
+                playAdText.innerText = "Watch AD for 3 seconds to unlock video";
+
+                // Show UI & Add Blur
+                playOverlay.style.display = 'flex';
+                videoWrapper.classList.add('blur-active');
+            }
+        });
+
+        playPillBtn.addEventListener('click', () => {
+            initiateRedirect();
+        });
+
+        // --------------------------------------------------
+        // 2. DOWNLOAD BUTTON LOGIC (5 Seconds)
+        // --------------------------------------------------
+        document.querySelector('.btn-download').addEventListener('click', (e) => {
+            // Only toggle if not unlocked yet
+            if (!isDownloadUnlocked) {
+                e.preventDefault();
+                
+                // Set Context
+                pendingAction = 'download';
+                currentRequiredTime = 5000;
+                currentPillTextElement = downloadAdText;
+
+                // Reset Text
+                downloadAdText.innerText = "Watch AD for 5 seconds to download video";
+
+                // Show UI (Below buttons)
+                downloadContainer.style.display = 'block';
+                
+                // Optional: Scroll to it
+                downloadContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                startDownload();
+            }
+        });
+
+        downloadPillBtn.addEventListener('click', () => {
+            initiateRedirect();
+        });
+
+
+        // --------------------------------------------------
+        // SHARED LOGIC
+        // --------------------------------------------------
+
+        function initiateRedirect() {
+            if (isRedirecting) return;
+            isRedirecting = true;
+
+            // Update Text
+            if (currentPillTextElement) {
+                currentPillTextElement.innerText = "Redirecting to Ad Partner...";
+            }
+
+            // 1.5 Second Delay
+            setTimeout(() => {
+                adStartTime = Date.now();
+                window.open(AD_URL, '_blank');
+            }, 1500);
+        }
+
+        // Verify Return
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible" && isRedirecting) {
+                
+                if (adStartTime === 0) return;
+
+                const elapsed = Date.now() - adStartTime;
+
+                if (elapsed >= currentRequiredTime) {
+                    // SUCCESS
+                    handleSuccess();
+                } else {
+                    // FAIL
+                    isRedirecting = false;
+                    const remaining = Math.ceil((currentRequiredTime - elapsed) / 1000);
+                    
+                    if (currentPillTextElement) {
+                        currentPillTextElement.innerText = `Too early! Watch for ${remaining} more seconds.`;
+                    }
+                    
+                    adStartTime = 0;
+                }
+            }
+        });
+
+        function handleSuccess() {
+            isRedirecting = false; // Reset flag
+
+            if (pendingAction === 'play') {
+                isVideoUnlocked = true;
+                // Remove Blur & Hide Overlay
+                videoWrapper.classList.remove('blur-active');
+                playOverlay.style.display = 'none';
+                myFP.play();
+            } 
+            else if (pendingAction === 'download') {
+                isDownloadUnlocked = true;
+                // Hide Download Section
+                downloadContainer.style.display = 'none';
+                startDownload();
+            }
+            
+            pendingAction = null;
+        }
+
+        function startDownload() {
+            const a = document.createElement('a');
+            a.href = VIDEO_SRC;
+            a.download = 'video-download.mp4';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // --- VIEW COUNTER ---
+        const viewDisplay = document.getElementById('viewCounter');
+        const storageKey = 'hause_video_views_ID123'; 
+        const startingViews = 54230; 
+        let currentViews = localStorage.getItem(storageKey);
+        if (!currentViews) currentViews = startingViews;
+        else currentViews = parseInt(currentViews) + 1;
+        localStorage.setItem(storageKey, currentViews);
+        viewDisplay.innerText = parseInt(currentViews).toLocaleString();
+
+    });
+    </script>
+</body>
+</html>
