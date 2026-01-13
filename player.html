@@ -48,14 +48,43 @@
         </div>
 
         <!-- Video Player Wrapper -->
-        <div class="video-wrapper">
-            <!-- HD Overlay -->
-            <div class="hd-badge">HD</div>
-            
-            <video id="hause-player">
-                <source src="assets/img/Zeo8WYpFtg8ut45H.mp4" data-fluid-hd title="1080p" type="video/mp4"/>
-            </video>
+<div class="video-wrapper">
+    <!-- HD Overlay -->
+    <div class="hd-badge">HD</div>
+    
+    <!-- === IN-PLAYER AD OVERLAY === -->
+    <div id="inPlayerAd" class="player-ad-overlay">
+        <div class="player-ad-content">
+            <!-- Header -->
+            <div class="ad-pill-header">
+                <div class="ad-pill-icon"><i class="fas fa-play"></i></div>
+                <div class="ad-pill-text">Watch AD for 1 free ep <span style="font-weight:400; color:#666;">0/3</span></div>
+            </div>
+
+            <!-- Main Interface -->
+            <div id="adMainInterface">
+                 <p style="color: var(--text-gray); font-size: 13px; margin-bottom: 15px;" id="adInstruction">
+                     Watch an ad for 3 seconds to unlock this video.
+                 </p>
+                 <div class="ad-btn-row">
+                    <button id="playerAdCancel" class="btn-player-cancel">Cancel</button>
+                    <button id="playerAdUnlock" class="btn-player-unlock">Unlock</button>
+                 </div>
+            </div>
+
+            <!-- Loading/Redirect Interface -->
+            <div id="adLoadingInterface" class="ad-loading-state">
+                <div class="spinner" style="width: 30px; height: 30px; border-width: 3px;"></div>
+                <p class="redirect-text">Redirecting you to partner...</p>
+            </div>
         </div>
+    </div>
+    <!-- === END OVERLAY === -->
+
+    <video id="hause-player">
+        <source src="assets/img/Zeo8WYpFtg8ut45H.mp4" data-fluid-hd title="1080p" type="video/mp4"/>
+    </video>
+</div>
 
         <!-- Video Info -->
         <div class="video-info-sec">
