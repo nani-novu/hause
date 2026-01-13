@@ -6,8 +6,377 @@
     <title>Video Title - Hause</title>
     <link rel="stylesheet" href="assets/css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Fluid Player CSS -->
     <link rel="stylesheet" href="https://cdn.fluidplayer.com/v3/current/fluidplayer.min.css" type="text/css"/>
+    <style>
+        /* --- PLAYER PAGE STYLES --- */
+
+.player-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 1. Breadcrumbs with Truncation */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-gray);
+    margin-bottom: 20px;
+    white-space: nowrap;
+    overflow: hidden; /* Essential for truncation */
+}
+
+.crumb-link {
+    color: var(--text-gray);
+    flex-shrink: 0; /* Don't shrink Home or Category */
+}
+.crumb-link:hover { color: var(--primary-pink); }
+
+.crumb-sep { font-size: 10px; flex-shrink: 0; }
+
+.crumb-current {
+    color: var(--text-white);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adds the ... */
+    min-width: 0; /* Flexbox hack for text-overflow */
+}
+
+/* 2. Video Player Wrapper & Overlay */
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    /* Enforce 16:9 Aspect Ratio to prevent layout shifts */
+    aspect-ratio: 16 / 9; 
+    margin-bottom: 20px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    background: black;
+    z-index: 1;
+}
+
+/* Force Fluid Player to fill the wrapper exactly */
+.fluid_video_wrapper {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+}
+
+/* HD Badge Overlay */
+.hd-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 10; /* Above Fluid Player controls */
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--primary-pink);
+    color: var(--primary-pink);
+    padding: 2px 6px;
+    font-size: 12px;
+    font-weight: 800;
+    border-radius: 4px;
+    pointer-events: none; /* Let clicks pass through to player */
+}
+
+/* 3. Info & Views */
+.video-info-sec {
+    margin-bottom: 25px;
+}
+
+.video-main-title {
+    font-size: 20px; /* Responsive size */
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.3;
+    color: var(--text-white);
+}
+
+.view-counter-wrapper {
+    font-size: 14px;
+    color: var(--text-gray);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 4. Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.btn-action {
+    flex: 1; /* Equal width */
+    padding: 15px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.btn-action:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+.btn-download {
+    background-color: var(--primary-pink);
+    color: white;
+}
+
+.btn-share {
+    background-color: #2a2e3b; /* Dark Gray */
+    color: white;
+}
+/* Light mode override for Share button */
+body.light-theme .btn-share {
+    background-color: #e0e0e0;
+    color: #111;
+}
+
+.player-ad-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.player-ad-content {
+    background-color: transparent;
+    padding: 25px;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    /* box-shadow: 0 10px 30px rgba(0,0,0,0.5); */
+}
+
+/* The Pink Pill Header */
+.ad-pill-header {
+    background-color: #ffeaea;
+    border: 2px solid #ff4500;
+    border-radius: 50px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.ad-pill-icon {
+    background-color: #6d4c41;
+    color: white;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+}
+
+.ad-pill-text {
+    color: #000;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+/* Loading/Redirect State */
+.ad-loading-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.redirect-text {
+    color: var(--text-white);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Action Buttons */
+.ad-btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.btn-player-cancel {
+    flex: 1;
+    background-color: var(--input-bg);
+    color: var(--text-white);
+    border: 1px solid var(--divider);
+    padding: 12px;
+    border-radius: 50px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-player-unlock {
+    flex: 1;
+    background-color: #e6b85c;
+    color: #000;
+    border: none;
+    padding: 22px;
+    border-radius: 50px;
+    font-weight: bold;
+    cursor: none;
+}
+
+.btn-player-unlock:hover { background-color: #d4a540; }
+
+/* 5. Loader Spinner */
+.loader-container {
+    display: flex;
+    justify-content: center;
+    padding: 40px 0 20px 0;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-left-color: var(--primary-pink);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive Adjustments */
+@media (min-width: 768px) {
+    .video-main-title { font-size: 24px; }
+    .action-buttons { justify-content: flex-start; }
+    .btn-action { flex: 0 0 200px; } /* Fixed width on desktop */
+}
+
+/* --- AD UNLOCK MODAL STYLES --- */
+
+.ad-modal-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #f0f0f0; /* Light gray background like image */
+    padding: 20px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Red/Pink Pill Shape */
+.ad-header-box {
+    background-color: #ffeaea; /* Light pink bg */
+    border: 2px solid #ff4500; /* Orange/Red border */
+    border-radius: 50px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.ad-icon-wrapper {
+    background-color: #6d4c41; /* Brownish circle */
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.ad-text-content {
+    color: #000;
+    font-weight: 700;
+    font-size: 16px;
+    display: flex;
+    gap: 5px;
+    font-family: sans-serif;
+}
+
+.ad-counter {
+    color: #999;
+    font-weight: 400;
+}
+
+/* Feedback Text */
+.ad-feedback {
+    text-align: center;
+    color: #ff0055;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+/* Buttons */
+.ad-buttons-row {
+    display: flex;
+    gap: 15px;
+}
+
+.btn-ad-cancel {
+    flex: 1;
+    background-color: white;
+    color: #000;
+    border: none;
+    padding: 15px;
+    border-radius: 50px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btn-ad-unlock {
+    flex: 1;
+    background-color: #e6b85c; /* Gold/Mustard color */
+    color: #000;
+    border: none;
+    padding: 15px;
+    border-radius: 50px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btn-ad-unlock:hover {
+    background-color: #d4a540;
+}
+    </style>
 </head>
 <body>
     
@@ -55,25 +424,13 @@
     <!-- === IN-PLAYER AD OVERLAY === -->
     <div id="inPlayerAd" class="player-ad-overlay">
         <div class="player-ad-content">
-            <div class="ad-pill-header">
+            <button class="ad-pill-header" id="playerAdUnlock">
                 <div class="ad-pill-icon"><i class="fas fa-play"></i></div>
-                <div class="ad-pill-text">Watch AD for 3 seconds to unlock video</div>
-            </div>
+                <div class="ad-pill-text" id="adPillText">Watch AD for 3 seconds to unlock video</div>
+            </button>
 
-            <!-- Main Interface -->
-            <div id="adMainInterface">
-                 <p style="color: var(--text-gray); font-size: 13px; margin-bottom: 15px;" id="adInstruction">
-                 </p>
-                 <div class="ad-btn-row">
-                    <button id="playerAdCancel" class="btn-player-cancel">Cancel</button>
-                    <button id="playerAdUnlock" class="btn-player-unlock">Unlock</button>
-                 </div>
-            </div>
-
-            <!-- Loading/Redirect Interface -->
             <div id="adLoadingInterface" class="ad-loading-state">
-                <div class="spinner" style="width: 30px; height: 30px; border-width: 3px;"></div>
-                <p class="redirect-text">Redirecting you to partner...</p>
+                <p class="redirect-text">You'll be redirected back after the ad...</p>
             </div>
         </div>
     </div>
@@ -148,30 +505,7 @@
         <div class="cookie-actions"><button id="cookieAcceptBtn" class="btn-full-pink">ACCEPT ALL COOKIES</button></div>
     </div>
     
-    <!-- === AD UNLOCK MODAL === -->
-<div id="adUnlockModal" class="modal-overlay" style="display: none; z-index: 10000;">
-    <div class="ad-modal-content">
-        <!-- Top Red Section -->
-        <div class="ad-header-box">
-            <div class="ad-icon-wrapper">
-                <i class="fas fa-play"></i>
-            </div>
-            <div class="ad-text-content">
-                <span class="ad-title">Watch AD for 1 free ep</span>
-                <span class="ad-counter">0/3</span>
-            </div>
-        </div>
-
-        <!-- Feedback Message Area -->
-        <div id="adFeedbackMsg" class="ad-feedback" style="display: none;"></div>
-
-        <!-- Buttons -->
-        <div class="ad-buttons-row">
-            <button id="adCancelBtn" class="btn-ad-cancel">Cancel</button>
-            <button id="adUnlockBtn" class="btn-ad-unlock">Unlock</button>
-        </div>
-    </div>
-</div>
+    
 
     <!-- Fluid Player JS -->
     <script src="https://cdn.fluidplayer.com/v3/current/fluidplayer.min.js"></script>
@@ -180,24 +514,25 @@
 
     <!-- Player Specific Script -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
         
         // --- CONFIG ---
-        const AD_URL = "https://www.google.com"; 
-        const REQUIRED_TIME = 3000; // 3 seconds
-        const VIDEO_SRC = "https://cdn.fluidplayer.com/videos/valerian-1080p.mkv";
-
+        const AD_URL = "https://ey43.com/4/10246098"; 
+        const VIDEO_SRC = "assets/img/Zeo8WYpFtg8ut45H.mp4";
+        
         // --- STATE ---
         let isUnlocked = false;
         let adStartTime = 0;
         let pendingAction = null; // 'play' or 'download'
+        let currentRequiredTime = 3000; // Changes based on action
 
         // --- ELEMENTS ---
         const overlay = document.getElementById('inPlayerAd');
         const mainInterface = document.getElementById('adMainInterface');
         const loadInterface = document.getElementById('adLoadingInterface');
-        const instructionTxt = document.getElementById('adInstruction');
-        
+        const pillText = document.getElementById('adPillText'); // The text inside the pill
+        const loadingText = document.getElementById('loadingText');
+
         // --- FLUID PLAYER INIT ---
         var myFP = fluidPlayer(
             'hause-player',	{
@@ -207,26 +542,36 @@
                     "mute": false,
                     "playButtonShowing": true,
                     "playPauseAnimation": true,
-                    "fillToContainer": true, // Critical for CSS fit
+                    "fillToContainer": true, 
                     "posterImage": "assets/img/hero.gif"
                 }
             }
         );
 
-        // --- INTERCEPT PLAY ---
+        // --- INTERCEPT PLAY (3 Seconds) ---
         myFP.on('play', function() {
             if (!isUnlocked) {
-                myFP.pause(); // Force pause
+                myFP.pause();
                 pendingAction = 'play';
+                currentRequiredTime = 3000; // 3 Seconds
+                
+                // Update Text
+                pillText.innerText = "Watch AD for 3 seconds to unlock video";
+                
                 showOverlay();
             }
         });
 
-        // --- INTERCEPT DOWNLOAD ---
+        // --- INTERCEPT DOWNLOAD (5 Seconds) ---
         document.querySelector('.btn-download').addEventListener('click', (e) => {
             if (!isUnlocked) {
                 e.preventDefault();
                 pendingAction = 'download';
+                currentRequiredTime = 5000; // 5 Seconds
+                
+                // Update Text
+                pillText.innerText = "Watch ad for 5 seconds to download video";
+                
                 showOverlay();
             } else {
                 startDownload();
@@ -237,25 +582,25 @@
 
         function showOverlay() {
             overlay.style.display = 'flex';
-            // Reset UI states
             mainInterface.style.display = 'block';
             loadInterface.style.display = 'none';
-            instructionTxt.innerText = "Watch an ad for 3 seconds to unlock content.";
-            instructionTxt.style.color = "var(--text-gray)";
         }
 
         // 1. Cancel Click
         document.getElementById('playerAdCancel').addEventListener('click', () => {
-            // Hide overlay, but video remains paused/locked
             overlay.style.display = 'none';
             pendingAction = null;
         });
 
-        // 2. Unlock Click
+        // 2. Unlock Click (The Pill Header)
         document.getElementById('playerAdUnlock').addEventListener('click', () => {
+            // Change Text Immediately
+            pillText.innerText = "Redirecting you to Ad Partner";
+            
             // Switch to Loading State
             mainInterface.style.display = 'none';
             loadInterface.style.display = 'flex';
+            loadingText.innerText = "Please wait...";
 
             // 1.5 Second Delay before redirect
             setTimeout(() => {
@@ -271,23 +616,24 @@
             // Only check if overlay is open, loading state is active, and we are visible
             if (document.visibilityState === "visible" && overlay.style.display === 'flex' && loadInterface.style.display === 'flex') {
                 
-                if (adStartTime === 0) return; // Should not happen if logic flows correctly
+                if (adStartTime === 0) return;
 
                 const elapsed = Date.now() - adStartTime;
 
-                if (elapsed >= REQUIRED_TIME) {
+                if (elapsed >= currentRequiredTime) {
                     // SUCCESS
                     handleSuccess();
                 } else {
-                    // FAIL - Return to Main Interface with Error
+                    // FAIL - Return to Main Interface
                     loadInterface.style.display = 'none';
                     mainInterface.style.display = 'block';
                     
-                    const remaining = Math.ceil((REQUIRED_TIME - elapsed) / 1000);
-                    instructionTxt.innerText = `Too early! You must watch for ${remaining} more seconds.`;
-                    instructionTxt.style.color = "#ff0055";
+                    const remaining = Math.ceil((currentRequiredTime - elapsed) / 1000);
                     
-                    // Reset start time so they must click unlock again
+                    // Update Text to show failure
+                    pillText.innerText = `Too early! Watch for ${remaining} more seconds.`;
+                    
+                    // Reset start time
                     adStartTime = 0;
                 }
             }
@@ -297,7 +643,6 @@
             isUnlocked = true;
             overlay.style.display = 'none';
             
-            // Perform pending action
             if (pendingAction === 'play') {
                 myFP.play();
             } else if (pendingAction === 'download') {
@@ -313,8 +658,8 @@
             a.click();
             document.body.removeChild(a);
         }
-            
-        // --- 8. VIEW COUNTER (Your existing code) ---
+
+        // --- VIEW COUNTER (Keep existing logic) ---
         const viewDisplay = document.getElementById('viewCounter');
         const storageKey = 'hause_video_views_ID123'; 
         const startingViews = 54230; 
