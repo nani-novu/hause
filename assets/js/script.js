@@ -213,4 +213,76 @@
             }
         });
     });
+    
+    // --- 7. SHUFFLE LOGIC ---
+
+    // Helper: Fisher-Yates Shuffle Algorithm
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    // Step A: Cross-Pollination (Trending <-> Top Picks)
+    // We mix cards from both into one pool, shuffle, and redistribute.
+    const trendingSec = document.getElementById('sec-trending');
+    const topPicksSec = document.getElementById('sec-top-picks');
+
+    if (trendingSec && topPicksSec) {
+        const trendingSlider = trendingSec.querySelector('.slider');
+        const topPicksSlider = topPicksSec.querySelector('.slider');
+
+        // 1. Get all cards from both
+        const trendingCards = Array.from(trendingSlider.children);
+        const topPicksCards = Array.from(topPicksSlider.children);
+        
+        // 2. Combine into one pool
+        const combinedPool = [...trendingCards, ...topPicksCards];
+        
+        // 3. Shuffle the pool
+        shuffleArray(combinedPool);
+
+        // 4. Clear current sliders
+        trendingSlider.innerHTML = '';
+        topPicksSlider.innerHTML = '';
+
+        // 5. Redistribute (Half go to one, half to the other)
+        const splitIndex = Math.ceil(combinedPool.length / 2);
+        
+        combinedPool.slice(0, splitIndex).forEach(card => trendingSlider.appendChild(card));
+        combinedPool.slice(splitIndex).forEach(card => topPicksSlider.appendChild(card));
+    }
+
+    // Step B: General Internal Card Shuffling
+    // Shuffle cards inside every section EXCEPT "Top Categories"
+    const allSections = document.querySelectorAll('.category-section');
+
+    allSections.forEach(section => {
+        // Skip Top Categories (ensure your HTML ID matches)
+        if (section.id === 'sec-categories') return;
+
+        const slider = section.querySelector('.slider');
+        if (slider) {
+            const cards = Array.from(slider.children);
+            // Shuffle cards
+            const shuffledCards = shuffleArray(cards);
+            // Clear and re-append
+            slider.innerHTML = '';
+            shuffledCards.forEach(card => slider.appendChild(card));
+        }
+    });
+
+    // Step C: Section Order Shuffling
+    // Shuffle the sections themselves within the wrapper
+    const sectionsWrapper = document.getElementById('sections-wrapper');
+    if (sectionsWrapper) {
+        const sections = Array.from(sectionsWrapper.children);
+        const shuffledSections = shuffleArray(sections);
+        
+        // Clear wrapper and re-append in new order
+        sectionsWrapper.innerHTML = '';
+        shuffledSections.forEach(sec => sectionsWrapper.appendChild(sec));
+    }
     });
