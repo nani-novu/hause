@@ -182,144 +182,140 @@
 
     <!-- Player Specific Script -->
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', () => {
         
-        // --- 1. CONFIGURATION ---
-        const AD_URL = "https://www.google.com"; // The link to load
-        const WAIT_TIME_MS = 3000; // 3 Seconds
-        const VIDEO_SOURCE = "https://cdn.fluidplayer.com/videos/valerian-1080p.mkv"; // Your video URL
-        
-        // --- 2. STATE VARIABLES ---
-        let isContentUnlocked = false;
-        let pendingAction = null; // 'play' or 'download'
-        let adStartTime = 0;
-        let adWindow = null;
+        // --- CONFIG ---
+        const AD_URL = "https://www.google.com"; 
+        const REQUIRED_TIME = 3000; // 3 seconds
+        const VIDEO_SRC = "https://cdn.fluidplayer.com/videos/valerian-1080p.mkv";
 
-        // --- 3. DOM ELEMENTS ---
-        const adModal = document.getElementById('adUnlockModal');
-        const feedbackMsg = document.getElementById('adFeedbackMsg');
-        const downloadBtn = document.querySelector('.btn-download');
+        // --- STATE ---
+        let isUnlocked = false;
+        let adStartTime = 0;
+        let pendingAction = null; // 'play' or 'download'
+
+        // --- ELEMENTS ---
+        const overlay = document.getElementById('inPlayerAd');
+        const mainInterface = document.getElementById('adMainInterface');
+        const loadInterface = document.getElementById('adLoadingInterface');
+        const instructionTxt = document.getElementById('adInstruction');
         
-        // --- 4. FLUID PLAYER SETUP ---
+        // --- FLUID PLAYER INIT ---
         var myFP = fluidPlayer(
-            'hause-player', {
+            'hause-player',	{
                 "layoutControls": {
                     "controlBar": { "autoHide": true, "animated": true },
-                    "autoPlay": false, 
+                    "autoPlay": false,
                     "mute": false,
                     "playButtonShowing": true,
                     "playPauseAnimation": true,
-                    "posterImage": "" 
+                    "fillToContainer": true, // Critical for CSS fit
+                    "posterImage": "assets/img/hero.gif"
                 }
             }
         );
 
-        // INTERCEPT PLAY CLICK
+        // --- INTERCEPT PLAY ---
         myFP.on('play', function() {
-            if (!isContentUnlocked) {
-                // Pause immediately
-                myFP.pause();
-                // Set action context
+            if (!isUnlocked) {
+                myFP.pause(); // Force pause
                 pendingAction = 'play';
-                // Show Modal
-                showAdModal();
+                showOverlay();
             }
         });
 
-        // --- 5. DOWNLOAD BUTTON INTERCEPT ---
-        downloadBtn.addEventListener('click', (e) => {
-            if (!isContentUnlocked) {
-                e.preventDefault(); // Stop default download
+        // --- INTERCEPT DOWNLOAD ---
+        document.querySelector('.btn-download').addEventListener('click', (e) => {
+            if (!isUnlocked) {
+                e.preventDefault();
                 pendingAction = 'download';
-                showAdModal();
+                showOverlay();
             } else {
-                // If already unlocked, allow default behavior or trigger manual download logic
-                triggerDownload();
+                startDownload();
             }
         });
 
-        // --- 6. AD MODAL LOGIC ---
+        // --- UI LOGIC ---
 
-        function showAdModal() {
-            adModal.style.display = 'block';
-            feedbackMsg.style.display = 'none';
-            feedbackMsg.innerText = '';
+        function showOverlay() {
+            overlay.style.display = 'flex';
+            // Reset UI states
+            mainInterface.style.display = 'block';
+            loadInterface.style.display = 'none';
+            instructionTxt.innerText = "Watch an ad for 3 seconds to unlock content.";
+            instructionTxt.style.color = "var(--text-gray)";
         }
 
-        function hideAdModal() {
-            adModal.style.display = 'none';
-        }
-
-        // Handle Cancel
-        document.getElementById('adCancelBtn').addEventListener('click', () => {
-            hideAdModal();
-            pendingAction = null; // Reset action
+        // 1. Cancel Click
+        document.getElementById('playerAdCancel').addEventListener('click', () => {
+            // Hide overlay, but video remains paused/locked
+            overlay.style.display = 'none';
+            pendingAction = null;
         });
 
-        // Handle Unlock
-        document.getElementById('adUnlockBtn').addEventListener('click', () => {
-            feedbackMsg.style.display = 'block';
-            feedbackMsg.style.color = '#333';
-            feedbackMsg.innerText = "Waiting for 3 seconds...";
+        // 2. Unlock Click
+        document.getElementById('playerAdUnlock').addEventListener('click', () => {
+            // Switch to Loading State
+            mainInterface.style.display = 'none';
+            loadInterface.style.display = 'flex';
 
-            // 1. Record Start Time
-            adStartTime = Date.now();
-
-            // 2. Open URL in new tab
-            adWindow = window.open(AD_URL, '_blank');
+            // 1.5 Second Delay before redirect
+            setTimeout(() => {
+                // Record time
+                adStartTime = Date.now();
+                // Open Link
+                window.open(AD_URL, '_blank');
+            }, 1500);
         });
 
-        // --- 7. CHECK RETURN TIMING (VISIBILITY CHANGE) ---
+        // --- VERIFY RETURN ---
         document.addEventListener("visibilitychange", () => {
-            // Only run if the modal is open and we have a pending action
-            if (document.visibilityState === "visible" && adModal.style.display === 'block' && pendingAction) {
+            // Only check if overlay is open, loading state is active, and we are visible
+            if (document.visibilityState === "visible" && overlay.style.display === 'flex' && loadInterface.style.display === 'flex') {
                 
-                // If user didn't actually click unlock yet
-                if (adStartTime === 0) return;
+                if (adStartTime === 0) return; // Should not happen if logic flows correctly
 
-                const elapsedTime = Date.now() - adStartTime;
+                const elapsed = Date.now() - adStartTime;
 
-                if (elapsedTime >= WAIT_TIME_MS) {
+                if (elapsed >= REQUIRED_TIME) {
                     // SUCCESS
-                    successUnlock();
+                    handleSuccess();
                 } else {
-                    // FAILED - RETURNED TOO EARLY
-                    const remaining = Math.ceil((WAIT_TIME_MS - elapsedTime) / 1000);
-                    feedbackMsg.style.display = 'block';
-                    feedbackMsg.style.color = '#ff0055';
-                    feedbackMsg.innerText = `You returned too early! Please watch for ${remaining} more seconds.`;
+                    // FAIL - Return to Main Interface with Error
+                    loadInterface.style.display = 'none';
+                    mainInterface.style.display = 'block';
                     
-                    // Reset start time so they have to click unlock again
-                    adStartTime = 0; 
+                    const remaining = Math.ceil((REQUIRED_TIME - elapsed) / 1000);
+                    instructionTxt.innerText = `Too early! You must watch for ${remaining} more seconds.`;
+                    instructionTxt.style.color = "#ff0055";
+                    
+                    // Reset start time so they must click unlock again
+                    adStartTime = 0;
                 }
             }
         });
 
-        function successUnlock() {
-            isContentUnlocked = true;
-            hideAdModal();
+        function handleSuccess() {
+            isUnlocked = true;
+            overlay.style.display = 'none';
             
-            // Execute the Pending Action
+            // Perform pending action
             if (pendingAction === 'play') {
                 myFP.play();
             } else if (pendingAction === 'download') {
-                triggerDownload();
+                startDownload();
             }
-            
-            // Reset
-            pendingAction = null;
         }
 
-        function triggerDownload() {
-            // Create a temporary link to trigger download
+        function startDownload() {
             const a = document.createElement('a');
-            a.href = VIDEO_SOURCE;
-            a.download = 'video-download.mp4'; // Suggested filename
+            a.href = VIDEO_SRC;
+            a.download = 'video-download.mp4';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
         }
-
+            
         // --- 8. VIEW COUNTER (Your existing code) ---
         const viewDisplay = document.getElementById('viewCounter');
         const storageKey = 'hause_video_views_ID123'; 
