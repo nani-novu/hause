@@ -154,7 +154,8 @@ body.light-theme .btn-share {
     left: 0;
     width: 100%;
     height: 100%;
-    background: transparent;
+    /* background: transparent; */
+    background: rgba(0,0,0,0.4);
     z-index: 100;
     display: none;
     flex-direction: column;
@@ -163,13 +164,40 @@ body.light-theme .btn-share {
     padding: 20px;
 }
 
+.video-wrapper.blur-active video,
+.video-wrapper.blur-active .fluid_controls_container,
+.video-wrapper.blur-active .fluid_poster_image_container {
+    filter: blur(10px);
+    pointer-events: none;
+}
+
+.download-ad-container {
+    display: none;
+    margin-bottom: 30px;
+    animation: fadeIn 0.5s ease;
+}
+    
+.download-ad-container .ad-pill-header {
+    width: 100%; /* Full width pill */
+    max-width: 500px; /* Optional cap */
+    margin: 0 auto; /* Center it */
+    cursor: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .player-ad-content {
     background-color: transparent;
     padding: 25px;
     border-radius: 15px;
     width: 100%;
     max-width: 380px;
+    display: flex;
     text-align: center;
+    justify-content: center;
     /* box-shadow: 0 10px 30px rgba(0,0,0,0.5); */
 }
 
@@ -425,9 +453,9 @@ body.light-theme .btn-share {
     <div id="inPlayerAd" class="player-ad-overlay">
     <div class="player-ad-content">
         <!-- The Pill Button -->
-        <button class="ad-pill-header" id="playerAdUnlock">
+        <button class="ad-pill-header" id="playAdPill">
             <div class="ad-pill-icon"><i class="fas fa-play"></i></div>
-            <div class="ad-pill-text" id="adPillText">Watch AD for 3 seconds to unlock video</div>
+            <div class="ad-pill-text" id="playAdText">Watch AD for 3 seconds to unlock video</div>
         </button>
     </div>
     </div>
@@ -454,6 +482,13 @@ body.light-theme .btn-share {
             <button class="btn-action btn-share">
                 <i class="fas fa-share-nodes"></i> Share
             </button>
+        </div>
+
+        <div id="downloadAdContainer" class="download-ad-container">
+    <button class="ad-pill-header" id="downloadAdPill">
+        <div class="ad-pill-icon"><i class="fas fa-download"></i></div>
+        <div class="ad-pill-text" id="downloadAdText">Watch AD for 5 seconds to download video</div>
+    </button>
         </div>
 
         <!-- Related Videos -->
@@ -518,16 +553,24 @@ body.light-theme .btn-share {
         const VIDEO_SRC = "assets/img/Zeo8WYpFtg8ut45H.mp4";
         
         // --- STATE ---
-        let isUnlocked = false;
+        let isVideoUnlocked = false; // Tracks Play unlock
+        let isDownloadUnlocked = false; // Tracks Download unlock
+        
         let adStartTime = 0;
         let pendingAction = null; // 'play' or 'download'
-        let currentRequiredTime = 3000; // Changes based on action
-        let isRedirecting = false; // Flag to track state
+        let currentRequiredTime = 3000;
+        let isRedirecting = false;
+        let currentPillTextElement = null; // Tracks which text to update (Play vs Download)
 
         // --- ELEMENTS ---
-        const overlay = document.getElementById('inPlayerAd');
-        const pillText = document.getElementById('adPillText'); 
-        // No cancel button reference needed
+        const videoWrapper = document.getElementById('videoWrapper');
+        const playOverlay = document.getElementById('inPlayerAd');
+        const playPillBtn = document.getElementById('playAdPill');
+        const playAdText = document.getElementById('playAdText');
+        
+        const downloadContainer = document.getElementById('downloadAdContainer');
+        const downloadPillBtn = document.getElementById('downloadAdPill');
+        const downloadAdText = document.getElementById('downloadAdText');
 
         // --- FLUID PLAYER INIT ---
         var myFP = fluidPlayer(
@@ -539,63 +582,90 @@ body.light-theme .btn-share {
                     "playButtonShowing": true,
                     "playPauseAnimation": true,
                     "fillToContainer": true, 
-                    "posterImage": "assets/img/hero.gif"
+                    "posterImage": ""
                 }
             }
         );
 
-        // --- INTERCEPT PLAY (3 Seconds) ---
+        // --------------------------------------------------
+        // 1. PLAY BUTTON LOGIC (3 Seconds)
+        // --------------------------------------------------
         myFP.on('play', function() {
-            if (!isUnlocked) {
+            if (!isVideoUnlocked) {
                 myFP.pause();
+                
+                // Set Context
                 pendingAction = 'play';
                 currentRequiredTime = 3000;
-                pillText.innerText = "Watch AD for 3 seconds to unlock video";
-                showOverlay();
+                currentPillTextElement = playAdText;
+
+                // Reset Text
+                playAdText.innerText = "Watch AD for 3 seconds to unlock video";
+
+                // Show UI & Add Blur
+                playOverlay.style.display = 'flex';
+                videoWrapper.classList.add('blur-active');
             }
         });
 
-        // --- INTERCEPT DOWNLOAD (5 Seconds) ---
+        playPillBtn.addEventListener('click', () => {
+            initiateRedirect();
+        });
+
+        // --------------------------------------------------
+        // 2. DOWNLOAD BUTTON LOGIC (5 Seconds)
+        // --------------------------------------------------
         document.querySelector('.btn-download').addEventListener('click', (e) => {
-            if (!isUnlocked) {
+            // Only toggle if not unlocked yet
+            if (!isDownloadUnlocked) {
                 e.preventDefault();
+                
+                // Set Context
                 pendingAction = 'download';
                 currentRequiredTime = 5000;
-                pillText.innerText = "Watch ad for 5 seconds to download video";
-                showOverlay();
+                currentPillTextElement = downloadAdText;
+
+                // Reset Text
+                downloadAdText.innerText = "Watch AD for 5 seconds to download video";
+
+                // Show UI (Below buttons)
+                downloadContainer.style.display = 'block';
+                
+                // Optional: Scroll to it
+                downloadContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } else {
                 startDownload();
             }
         });
 
-        // --- UI LOGIC ---
-
-        function showOverlay() {
-            overlay.style.display = 'flex';
-            isRedirecting = false;
-        }
-
-        // Unlock Click (The Pill Header)
-        document.getElementById('playerAdUnlock').addEventListener('click', () => {
-            if (isRedirecting) return; // Prevent double clicks
-            isRedirecting = true;
-
-            // Update Text Directly
-            pillText.innerText = "Redirecting you to Ad Partner...";
-
-            // 1.5 Second Delay before redirect
-            setTimeout(() => {
-                // Record time
-                adStartTime = Date.now();
-                // Open Link
-                window.open(AD_URL, '_blank');
-            }, 1500);
+        downloadPillBtn.addEventListener('click', () => {
+            initiateRedirect();
         });
 
-        // --- VERIFY RETURN ---
+
+        // --------------------------------------------------
+        // SHARED LOGIC
+        // --------------------------------------------------
+
+        function initiateRedirect() {
+            if (isRedirecting) return;
+            isRedirecting = true;
+
+            // Update Text
+            if (currentPillTextElement) {
+                currentPillTextElement.innerText = "Redirecting to Ad Partner...";
+            }
+
+            // 1.5 Second Delay
+            setTimeout(() => {
+                adStartTime = Date.now();
+                window.open(AD_URL, '_blank');
+            }, 1500);
+        }
+
+        // Verify Return
         document.addEventListener("visibilitychange", () => {
-            // Only run logic if we are visible, overlay is open, and we actually started the redirect
-            if (document.visibilityState === "visible" && overlay.style.display === 'flex' && isRedirecting) {
+            if (document.visibilityState === "visible" && isRedirecting) {
                 
                 if (adStartTime === 0) return;
 
@@ -609,24 +679,33 @@ body.light-theme .btn-share {
                     isRedirecting = false;
                     const remaining = Math.ceil((currentRequiredTime - elapsed) / 1000);
                     
-                    // Update Text to show failure
-                    pillText.innerText = `Too early! Watch for ${remaining} more seconds.`;
+                    if (currentPillTextElement) {
+                        currentPillTextElement.innerText = `Too early! Watch for ${remaining} more seconds.`;
+                    }
                     
-                    // Reset start time so they must click again
                     adStartTime = 0;
                 }
             }
         });
 
         function handleSuccess() {
-            isUnlocked = true;
-            overlay.style.display = 'none';
-            
+            isRedirecting = false; // Reset flag
+
             if (pendingAction === 'play') {
+                isVideoUnlocked = true;
+                // Remove Blur & Hide Overlay
+                videoWrapper.classList.remove('blur-active');
+                playOverlay.style.display = 'none';
                 myFP.play();
-            } else if (pendingAction === 'download') {
+            } 
+            else if (pendingAction === 'download') {
+                isDownloadUnlocked = true;
+                // Hide Download Section
+                downloadContainer.style.display = 'none';
                 startDownload();
             }
+            
+            pendingAction = null;
         }
 
         function startDownload() {
@@ -638,17 +717,13 @@ body.light-theme .btn-share {
             document.body.removeChild(a);
         }
 
-        // --- VIEW COUNTER (Keep existing logic) ---
+        // --- VIEW COUNTER ---
         const viewDisplay = document.getElementById('viewCounter');
         const storageKey = 'hause_video_views_ID123'; 
         const startingViews = 54230; 
-
         let currentViews = localStorage.getItem(storageKey);
-        if (!currentViews) {
-            currentViews = startingViews;
-        } else {
-            currentViews = parseInt(currentViews) + 1;
-        }
+        if (!currentViews) currentViews = startingViews;
+        else currentViews = parseInt(currentViews) + 1;
         localStorage.setItem(storageKey, currentViews);
         viewDisplay.innerText = parseInt(currentViews).toLocaleString();
 
