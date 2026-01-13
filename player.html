@@ -550,18 +550,17 @@ body.light-theme .btn-share {
         
         // --- CONFIG ---
         const AD_URL = "https://ey43.com/4/10246098"; 
-        const VIDEO_SRC = "https://cdn.fluidplayer.com/videos/valerian-1080p.mkv";
+        const VIDEO_SRC = "assets/img/Zeo8WYpFtg8ut45H.mp4";
         
         // --- STATE ---
-        let isVideoUnlocked = false; 
-        let isDownloadUnlocked = false; 
+        let isVideoUnlocked = false; // Tracks Play unlock
+        let isDownloadUnlocked = false; // Tracks Download unlock
         
         let adStartTime = 0;
-        let pendingAction = null; 
+        let pendingAction = null; // 'play' or 'download'
         let currentRequiredTime = 3000;
-        let isWaitingForTabSwitch = false; // Waiting for user to leave page
-        let isCountingDown = false; // User is currently on the ad tab
-        let currentPillTextElement = null;
+        let isRedirecting = false;
+        let currentPillTextElement = null; // Tracks which text to update (Play vs Download)
 
         // --- ELEMENTS ---
         const videoWrapper = document.getElementById('videoWrapper');
@@ -583,7 +582,7 @@ body.light-theme .btn-share {
                     "playButtonShowing": true,
                     "playPauseAnimation": true,
                     "fillToContainer": true, 
-                    "posterImage": "assets/img/hero.gif"
+                    "posterImage": ""
                 }
             }
         );
@@ -594,30 +593,45 @@ body.light-theme .btn-share {
         myFP.on('play', function() {
             if (!isVideoUnlocked) {
                 myFP.pause();
+                
+                // Set Context
                 pendingAction = 'play';
                 currentRequiredTime = 3000;
                 currentPillTextElement = playAdText;
+
+                // Reset Text
                 playAdText.innerText = "Watch AD for 3 seconds to unlock video";
+
+                // Show UI & Add Blur
                 playOverlay.style.display = 'flex';
                 videoWrapper.classList.add('blur-active');
             }
         });
 
         playPillBtn.addEventListener('click', () => {
-            initiateAdFlow(playAdText);
+            initiateRedirect();
         });
 
         // --------------------------------------------------
         // 2. DOWNLOAD BUTTON LOGIC (5 Seconds)
         // --------------------------------------------------
         document.querySelector('.btn-download').addEventListener('click', (e) => {
+            // Only toggle if not unlocked yet
             if (!isDownloadUnlocked) {
                 e.preventDefault();
+                
+                // Set Context
                 pendingAction = 'download';
                 currentRequiredTime = 5000;
                 currentPillTextElement = downloadAdText;
+
+                // Reset Text
                 downloadAdText.innerText = "Watch AD for 5 seconds to download video";
+
+                // Show UI (Below buttons)
                 downloadContainer.style.display = 'block';
+                
+                // Optional: Scroll to it
                 downloadContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } else {
                 startDownload();
@@ -625,74 +639,72 @@ body.light-theme .btn-share {
         });
 
         downloadPillBtn.addEventListener('click', () => {
-            initiateAdFlow(downloadAdText);
+            initiateRedirect();
         });
 
 
         // --------------------------------------------------
-        // SHARED AD LOGIC
+        // SHARED LOGIC
         // --------------------------------------------------
 
-        function initiateAdFlow(textElement) {
-            if (isWaitingForTabSwitch || isCountingDown) return;
+        function initiateRedirect() {
+            if (isRedirecting) return;
+            isRedirecting = true;
 
-            // 1. Update UI to show we are initializing
-            textElement.innerText = "Redirecting to Ad Partner...";
-            
-            // 2. Open Ad Immediately (prevents Popup Blockers)
-            window.open(AD_URL, '_blank');
-
-            // 3. Set flag to wait for the browser to switch tabs
-            // We don't start the timer yet. We wait for visibility to go 'hidden'.
-            isWaitingForTabSwitch = true;
-        }
-
-        // Handle Tab Switching (The core timer logic)
-        document.addEventListener("visibilitychange", () => {
-            
-            // A. User HAS LEFT the tab (Ad opened) -> START TIMER
-            if (document.visibilityState === "hidden" && isWaitingForTabSwitch) {
-                isWaitingForTabSwitch = false;
-                isCountingDown = true;
-                adStartTime = Date.now();
-                console.log("Ad Tab Active. Timer Started.");
+            // Update Text
+            if (currentPillTextElement) {
+                currentPillTextElement.innerText = "Redirecting to Ad Partner...";
             }
 
-            // B. User HAS RETURNED to the tab -> STOP TIMER & CHECK
-            if (document.visibilityState === "visible" && isCountingDown) {
+            // 1.5 Second Delay
+            setTimeout(() => {
+                adStartTime = Date.now();
+                window.open(AD_URL, '_blank');
+            }, 1500);
+        }
+
+        // Verify Return
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible" && isRedirecting) {
                 
-                // Calculate how long they were away
+                if (adStartTime === 0) return;
+
                 const elapsed = Date.now() - adStartTime;
-                
-                // Reset State
-                isCountingDown = false; 
-                adStartTime = 0;
 
                 if (elapsed >= currentRequiredTime) {
                     // SUCCESS
                     handleSuccess();
                 } else {
-                    // FAIL - Returned too early
+                    // FAIL
+                    isRedirecting = false;
                     const remaining = Math.ceil((currentRequiredTime - elapsed) / 1000);
+                    
                     if (currentPillTextElement) {
                         currentPillTextElement.innerText = `Too early! Watch for ${remaining} more seconds.`;
                     }
+                    
+                    adStartTime = 0;
                 }
             }
         });
 
         function handleSuccess() {
+            isRedirecting = false; // Reset flag
+
             if (pendingAction === 'play') {
                 isVideoUnlocked = true;
+                // Remove Blur & Hide Overlay
                 videoWrapper.classList.remove('blur-active');
                 playOverlay.style.display = 'none';
                 myFP.play();
             } 
             else if (pendingAction === 'download') {
                 isDownloadUnlocked = true;
+                // Hide Download Section
                 downloadContainer.style.display = 'none';
                 startDownload();
             }
+            
             pendingAction = null;
         }
 
