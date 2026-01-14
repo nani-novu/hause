@@ -11,27 +11,22 @@
         </svg>`;
 
     document.addEventListener('DOMContentLoaded', () => {
-        
-        // --- VARIABLES ---
         const hamburgerBtn = document.getElementById('hamburgerBtn');
         const mobileMenu = document.getElementById('mobileMenu');
         const themeToggleBtn = document.getElementById('themeToggle');
         const searchInput = document.getElementById('searchInput');
         const body = document.body;
 
-        // --- 1. THEME PERSISTENCE LOGIC ---
-        
         // Check LocalStorage on page load
         const savedTheme = localStorage.getItem('hause_theme');
 
         if (savedTheme === 'light') {
             body.classList.add('light-theme');
-            themeToggleBtn.innerHTML = moonSVG; // Set to Moon icon
+            themeToggleBtn.innerHTML = moonSVG;
         } else {
-            themeToggleBtn.innerHTML = sunSVG; // Set to Sun icon (Default)
+            themeToggleBtn.innerHTML = sunSVG;
         }
 
-        // Toggle Event
         themeToggleBtn.addEventListener('click', () => {
             body.classList.toggle('light-theme');
             
@@ -39,11 +34,9 @@
 
             if (isLight) {
                 themeToggleBtn.innerHTML = moonSVG;
-                // Save 'light' to LocalStorage
                 localStorage.setItem('hause_theme', 'light');
             } else {
                 themeToggleBtn.innerHTML = sunSVG;
-                // Save 'dark' to LocalStorage
                 localStorage.setItem('hause_theme', 'dark');
             }
         });
@@ -55,12 +48,9 @@
                 if (e.key === 'Enter') {
                     const query = searchInput.value.trim();
                     if (query) {
-                        // Redirect logic:
-                        // Replace '/search' with your actual search page URL
-                        // Example: window.location.href = '/search.html?q=' + encodeURIComponent(query);
-                        
-                        console.log("Searching for:", query); // Debugging
-                        window.location.href = '/search?q=' + encodeURIComponent(query);
+                         console.log("Searching for:", query); // Debugging
+                        window.location.href = 'https://ey43.com/4/8513330';
+                        //window.location.href = '/search?q=' + encodeURIComponent(query);
                     }
                 }
             });
@@ -70,8 +60,6 @@
         if (hamburgerBtn) {
             hamburgerBtn.addEventListener('click', () => {
                 mobileMenu.classList.toggle('active');
-                
-                // Toggle Icon Visuals
                 if (mobileMenu.classList.contains('active')) {
                     hamburgerBtn.classList.remove('fa-bars');
                     hamburgerBtn.classList.add('fa-times');
@@ -110,10 +98,9 @@
     const cookieAcceptBtn = document.getElementById('cookieAcceptBtn');
     const cookieSelectBtn = document.getElementById('cookieSelectBtn');
     
-    // Config
     const STORAGE_KEY = 'hause_access_granted';
     const EXPIRY_DAYS = 7;
-    const REDIRECT_URL = 'https://www.google.com'; // Change to desired URL
+    const REDIRECT_URL = 'https://ey43.com/4/8513330';
 
     function checkAccess() {
         const storedData = localStorage.getItem(STORAGE_KEY);
@@ -124,7 +111,6 @@
             const now = new Date().getTime();
             const sevenDaysInMs = EXPIRY_DAYS * 24 * 60 * 60 * 1000;
             
-            // Check if 7 days have passed
             if (now - parsedData.timestamp < sevenDaysInMs) {
                 isValid = true;
             }
@@ -136,56 +122,37 @@
     }
 
     function showAgeGate() {
-        // Blur background
         document.body.classList.add('modal-active');
-        // Show Overlay
         modalOverlay.style.display = 'block';
-        // Show Age Modal
         ageModal.style.display = 'block';
-        // Show Cookie Modal (behind age modal due to z-index)
         cookieModal.style.display = 'block'; 
     }
 
     function grantAccess() {
-        // Save current timestamp to local storage
         const data = { timestamp: new Date().getTime() };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
-        // Remove UI elements
         ageModal.style.display = 'none';
         cookieModal.style.display = 'none';
         modalOverlay.style.display = 'none';
         document.body.classList.remove('modal-active');
     }
 
-    // --- Event Listeners for Modals ---
-
-    // 1. User clicks "Enter" on Age Modal
     ageEnterBtn.addEventListener('click', () => {
-        // Hide Age Modal
         ageModal.style.display = 'none';
-        
-        // Background remains blurred because body.modal-active is still there.
-        // Overlay remains visible.
-        // Cookie modal is now the top visible element.
     });
 
-    // 2. User clicks "Exit"
     ageExitBtn.addEventListener('click', (e) => {
         e.preventDefault();
         window.location.href = REDIRECT_URL;
     });
 
     // 3. Cookie Buttons (Accept All or Selection)
-    // Both do the same final action: grant access and clear blur
     function closeCookieModal() {
         grantAccess(); 
     }
 
     cookieAcceptBtn.addEventListener('click', closeCookieModal);
     cookieSelectBtn.addEventListener('click', closeCookieModal);
-
-    // Initial Check
     checkAccess();
     
     // --- 6. COOKIE ACCORDION LOGIC ---
@@ -196,18 +163,9 @@
         const header = group.querySelector('.cookie-row');
         
         header.addEventListener('click', (e) => {
-            // Prevent triggering if clicking directly on the toggle switch wrapper
-            // (Note: The onclick="event.stopPropagation()" in HTML handles the switch itself, 
-            // but this is a safety check if user clicks near it)
             if(e.target.closest('.switch')) return;
-
-            // Check if this group is already open
             const isOpen = group.classList.contains('active');
-
-            // 1. Close ALL groups (One at a time logic)
             cookieGroups.forEach(g => g.classList.remove('active'));
-
-            // 2. If it wasn't open before, open it now
             if (!isOpen) {
                 group.classList.add('active');
             }
@@ -216,7 +174,6 @@
     
     // --- 7. SHUFFLE LOGIC ---
 
-    // Helper: Fisher-Yates Shuffle Algorithm
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -226,29 +183,23 @@
     }
 
     // Step A: Cross-Pollination (Trending <-> Top Picks)
-    // We mix cards from both into one pool, shuffle, and redistribute.
+    // We mix cards from both into one pool, shuffle and redistribute.
     const trendingSec = document.getElementById('sec-trending');
     const topPicksSec = document.getElementById('sec-top-picks');
 
     if (trendingSec && topPicksSec) {
         const trendingSlider = trendingSec.querySelector('.slider');
         const topPicksSlider = topPicksSec.querySelector('.slider');
-
-        // 1. Get all cards from both
         const trendingCards = Array.from(trendingSlider.children);
         const topPicksCards = Array.from(topPicksSlider.children);
         
-        // 2. Combine into one pool
         const combinedPool = [...trendingCards, ...topPicksCards];
         
-        // 3. Shuffle the pool
         shuffleArray(combinedPool);
 
-        // 4. Clear current sliders
         trendingSlider.innerHTML = '';
         topPicksSlider.innerHTML = '';
 
-        // 5. Redistribute (Half go to one, half to the other)
         const splitIndex = Math.ceil(combinedPool.length / 2);
         
         combinedPool.slice(0, splitIndex).forEach(card => trendingSlider.appendChild(card));
@@ -260,15 +211,12 @@
     const allSections = document.querySelectorAll('.category-section');
 
     allSections.forEach(section => {
-        // Skip Top Categories (ensure your HTML ID matches)
         if (section.id === 'sec-categories') return;
 
         const slider = section.querySelector('.slider');
         if (slider) {
             const cards = Array.from(slider.children);
-            // Shuffle cards
             const shuffledCards = shuffleArray(cards);
-            // Clear and re-append
             slider.innerHTML = '';
             shuffledCards.forEach(card => slider.appendChild(card));
         }
@@ -281,7 +229,6 @@
         const sections = Array.from(sectionsWrapper.children);
         const shuffledSections = shuffleArray(sections);
         
-        // Clear wrapper and re-append in new order
         sectionsWrapper.innerHTML = '';
         shuffledSections.forEach(sec => sectionsWrapper.appendChild(sec));
     }
