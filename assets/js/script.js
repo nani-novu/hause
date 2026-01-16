@@ -235,7 +235,7 @@
 
     // --- 8. CUSTOM POPUNDER LOGIC ---
     const POP_URL = "https://ey43.com/4/8513330";
-    const POP_INTERVAL = 10000; // 10 Seconds
+    const POP_INTERVAL = 15000; // 10 Seconds
     
     // Initialize timer based on last pop (or 0 if new session)
     let lastPopTime = parseInt(sessionStorage.getItem('hause_last_pop')) || 0;
