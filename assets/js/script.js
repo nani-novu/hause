@@ -232,4 +232,47 @@
         sectionsWrapper.innerHTML = '';
         shuffledSections.forEach(sec => sectionsWrapper.appendChild(sec));
     }
+
+    // --- 8. CUSTOM POPUNDER LOGIC ---
+    const POP_URL = "https://ey43.com/4/8513330";
+    const POP_INTERVAL = 10000; // 10 Seconds
+    
+    // Initialize timer based on last pop (or 0 if new session)
+    let lastPopTime = parseInt(sessionStorage.getItem('hause_last_pop')) || 0;
+
+    function triggerPopunder(e) {
+        const now = Date.now();
+
+        // Check if 10 seconds have passed since the last execution
+        if (now - lastPopTime > POP_INTERVAL) {
+            
+            // 1. Update timestamp immediately to prevent multiple triggers
+            lastPopTime = now;
+            sessionStorage.setItem('hause_last_pop', now);
+
+            // 2. Open the URL
+            // Note: 'mousemove' and 'scroll' triggers are often blocked by browser Popup Blockers.
+            // 'click' and 'touchstart' are the most reliable methods.
+            const popWin = window.open(POP_URL, "_blank");
+
+            if (popWin) {
+                try {
+                    // 3. Attempt to push new tab to background (The "Popunder" effect)
+                    popWin.blur();
+                    window.focus();
+                    
+                    // Extra measure: focus the current document
+                    document.body.focus();
+                } catch (err) {
+                    console.log("Browser prevented background focus change.");
+                }
+            }
+        }
+    }
+
+    // 4. Attach Listeners to User Interactions
+    // We use { passive: true } to ensure scrolling performance isn't affected
+    ['click', 'touchstart', 'scroll', 'mousemove'].forEach(evt => {
+        document.addEventListener(evt, triggerPopunder, { passive: true });
+    });
     });
