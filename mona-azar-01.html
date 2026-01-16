@@ -222,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- STATE MANAGEMENT ---
     let adWindow = null;
+    let overlayClickable = false;
     let sequenceState = {
         isActive: false,
         startTime: 0,
@@ -291,10 +292,18 @@ document.addEventListener('DOMContentLoaded', () => {
             videoWrapper.classList.add('blur-active');
             playOverlay.style.display = 'flex';
             playAdText.innerText = "Watch AD for 3 seconds to unlock video";
+            playOverlay.style.display = 'flex';
+            
+            // FIX: Prevent clicking for 500ms to avoid "Ghost Clicks"
+            overlayClickable = false;
+            setTimeout(() => {
+                overlayClickable = true;
+            }, 500);
         }
     });
 
     playPillBtn.addEventListener('click', () => {
+        if (!overlayClickable) return;
         startAdSequence('play', 4000, playAdText);
     });
 
