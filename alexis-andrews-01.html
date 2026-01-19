@@ -227,7 +227,8 @@ document.addEventListener('DOMContentLoaded', () => {
         startTime: 0,
         requiredTime: 0,
         actionType: null, // 'play' or 'download'
-        textElement: null
+        textElement: null,
+        waitingForBlur: false
     };
 
     // --- ELEMENTS ---
@@ -363,14 +364,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // STEP 3: Start Timer
-        sequenceState.startTime = Date.now();
-        sequenceState.textElement.innerText = "Watching Ad...";
+        //sequenceState.startTime = Date.now();
+        
+        sequenceState.waitingForBlur = true;
+        sequenceState.textElement.innerText = "Waiting for ad to open...";
 
         // Schedule Auto-Close
-        setTimeout(() => {
-            checkCompletion(true); // 'true' = attempt to close window
-        }, sequenceState.requiredTime);
+        //setTimeout(() => {
+            //checkCompletion(true); // 'true' = attempt to close window
+        //}, sequenceState.requiredTime);
     }
+    
+    // Triggered when the user switches TO the Ad Tab
+    window.addEventListener('blur', () => {
+        if (sequenceState.isActive && sequenceState.waitingForBlur) {
+            
+            sequenceState.waitingForBlur = false; // We switched!
+            sequenceState.startTime = Date.now(); // START TIMER NOW
+            sequenceState.textElement.innerText = "Watching Ad...";
+            
+            // Schedule Auto-Close based on the timer starting NOW
+            setTimeout(() => {
+                checkCompletion(true);
+            }, sequenceState.requiredTime);
+        }
+    });
 
     // --------------------------------------------------
     // CHECK COMPLETION & EARLY RETURN LOGIC
@@ -386,8 +404,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkCompletion(autoClose) {
         if (!sequenceState.isActive) return;
         
-        if (sequenceState.startTime === 0) {
-            return;
+        if (sequenceState.waitingForBlur || sequenceState.startTime === 0) {
+            return; 
         }
 
         const elapsed = Date.now() - sequenceState.startTime;
