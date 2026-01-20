@@ -234,45 +234,56 @@
     }
 
     // --- 8. CUSTOM POPUNDER LOGIC ---
-    const POP_URL = "https://ey43.com/4/8513330";
-    const POP_INTERVAL = 15000; // 10 Seconds
-    
-    // Initialize timer based on last pop (or 0 if new session)
-    let lastPopTime = parseInt(sessionStorage.getItem('hause_last_pop')) || 0;
+const POP_URL = "https://ey43.com/4/8513330";
+const POP_INTERVAL = 15000; // 15 Seconds cooldown
 
-    function triggerPopunder(e) {
-        const now = Date.now();
+// Initialize timer based on last pop (or 0 if new session)
+let lastPopTime = parseInt(sessionStorage.getItem('hause_last_pop')) || 0;
 
-        // Check if 10 seconds have passed since the last execution
-        if (now - lastPopTime > POP_INTERVAL) {
-            
-            // 1. Update timestamp immediately to prevent multiple triggers
-            lastPopTime = now;
-            sessionStorage.setItem('hause_last_pop', now);
+function triggerPopunder(e) {
+    const now = Date.now();
 
-            // 2. Open the URL
-            // Note: 'mousemove' and 'scroll' triggers are often blocked by browser Popup Blockers.
-            // 'click' and 'touchstart' are the most reliable methods.
-            const popWin = window.open(POP_URL, "_blank");
+    // Check if cooldown has passed
+    if (now - lastPopTime > POP_INTERVAL) {
+        
+        // 1. Update timestamp immediately
+        lastPopTime = now;
+        sessionStorage.setItem('hause_last_pop', now);
 
-            if (popWin) {
-                try {
-                    // 3. Attempt to push new tab to background (The "Popunder" effect)
-                    popWin.blur();
-                    window.focus();
-                    
-                    // Extra measure: focus the current document
-                    document.body.focus();
-                } catch (err) {
-                    console.log("Browser prevented background focus change.");
-                }
+        // 2. Open the URL as a New Window (not a tab)
+        // By defining width/height, we force a new window instance. 
+        // This is necessary because browsers barely allow 'blurring' standard tabs anymore.
+        const width = window.screen.width;
+        const height = window.screen.height;
+        const params = `width=${width},height=${height},top=0,left=0,scrollbars=1,resizable=1,toolbar=0,menubar=0,location=1,statusbar=1`;
+        
+        const popWin = window.open(POP_URL, "hause_popunder", params);
+
+        if (popWin) {
+            try {
+                // 3. The "Popunder" Dance
+                // We tell the new window to lose focus
+                popWin.blur();
+                
+                // We tell the current window to grab focus immediately
+                window.focus();
+                window.self.window.focus();
+                
+                // Extra trick: Simulate a momentary input on the current window 
+                // to force the browser to recognize it as active
+                document.body.focus();
+                
+            } catch (err) {
+                console.log("Browser prevented background focus change.");
             }
         }
     }
+}
 
-    // 4. Attach Listeners to User Interactions
-    // We use { passive: true } to ensure scrolling performance isn't affected
-    ['click', 'touchstart', 'scroll', 'mousemove'].forEach(evt => {
-        document.addEventListener(evt, triggerPopunder, { passive: true });
-    });
+// 4. Attach Listeners ONLY to direct actions
+// 'scroll' and 'mousemove' are removed because modern browsers 
+// strictly block popups on those events.
+['click', 'touchstart'].forEach(evt => {
+    document.addEventListener(evt, triggerPopunder, { passive: true });
+});
     });
