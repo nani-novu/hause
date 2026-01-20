@@ -397,6 +397,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if user came back manually
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible" && sequenceState.isActive && sequenceState.startTime > 0) {
+            if (sequenceState.startTime === 0 || sequenceState.waitingForBlur) {
+                sequenceState.textElement.innerText = "Ad load failed. Click to try again.";
+                sequenceState.isActive = false; // RESET STATE: Makes button clickable again
+                sequenceState.waitingForBlur = false;
+                return;
+            }
+            
             checkCompletion(false);
         }
     });
@@ -431,7 +438,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- FAIL: TOO EARLY ---
             if (!autoClose) { // Only show this if user came back manually, not on timer check
                 const remaining = Math.ceil((sequenceState.requiredTime - elapsed) / 1000);
-                sequenceState.textElement.innerText = `Too early! Watch for ${remaining} more second(s)`;
+                sequenceState.textElement.innerText = `Too early! (${remaining}s left). Click to retry.`;
+                
+                // RESET STATE: This allows the user to click the button again
+                // which will trigger startAdSequence() and restart the whole process.
+                sequenceState.isActive = false; 
+                sequenceState.startTime = 0;
             }
         }
     }
