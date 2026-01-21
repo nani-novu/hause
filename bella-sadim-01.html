@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bella Sadim on xxBaddies</title>
+    <title>Bella Sadim on xxFun</title>
     <meta http-equiv="Content-type" content="text/html; charset=UTF-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="msapplication-config" content="none" />
     <meta name="keywords" content="porn, sex,xxx" />
-     <meta name="description" content="xxBaddies brings you NEW porn videos every day for free. Enjoy our XXX movies in high quality HD resolution on any device. Get fully immersed with the latest virtual reality sex videos from top adult studios. Stream all of the hottest porn movies from your favorite categories, pornstars and porn channels!"/>
+     <meta name="description" content="xxFun brings you NEW porn videos every day for free. Enjoy our XXX movies in high quality HD resolution on any device. Get fully immersed with the latest virtual reality sex videos from top adult studios. Stream all of the hottest porn movies from your favorite categories, pornstars and porn channels!"/>
     <meta name="robots" content="index, follow"/>
     <meta name="RATING" content="RTA-5042-1996-1400-1577-RTA" />
     <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
@@ -20,7 +20,7 @@
 </head>
 <body>
     <nav class="navbar">
-        <div class="logo"><a href="index.html">xxBaddies</a></div>
+        <div class="logo"><a href="index.html">xxFun</a></div>
         <div class="nav-right">
             <div class="search-container">
                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -130,10 +130,10 @@
     <div id="modalOverlay" class="modal-overlay"></div>
     <div id="ageModal" class="custom-modal age-modal">
         <div class="modal-header-center">
-            <h2 class="modal-title-serif">XXBADDIES</h2>
+            <h2 class="modal-title-serif">xxFun</h2>
         </div>
         <div class="age-content">
-            <p class="warning-text"><strong>xxBaddies</strong> is an adult-only website</p>
+            <p class="warning-text"><strong>xxFun</strong> is an adult-only website</p>
             <p class="legal-text"> This website is strictly limited to those over 18 or of legal age in your jurisdiction, whichever is greater.</p>
             <p class="legal-text">To enter the website you must be 18 or older.</p>
             <button id="ageEnterBtn" class="btn-full-pink">I'M 18 OR OLDER - ENTER</button>
@@ -210,7 +210,7 @@
     
     <script src="https://cdn.fluidplayer.com/v3/current/fluidplayer.min.js"></script>
     <script src="assets/js/script.js"></script>
-
+    
     <script>
 document.addEventListener('DOMContentLoaded', () => {
    
@@ -227,7 +227,8 @@ document.addEventListener('DOMContentLoaded', () => {
         startTime: 0,
         requiredTime: 0,
         actionType: null, // 'play' or 'download'
-        textElement: null
+        textElement: null,
+        waitingForBlur: false
     };
 
     // --- ELEMENTS ---
@@ -303,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     playPillBtn.addEventListener('click', () => {
         if (!overlayClickable) return;
-        startAdSequence('play', 3500, playAdText);
+        startAdSequence('play', 4500, playAdText);
     });
 
     // --------------------------------------------------
@@ -324,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     downloadPillBtn.addEventListener('click', () => {
-        startAdSequence('download', 6000, downloadAdText);
+        startAdSequence('download', 7000, downloadAdText);
     });
 
     // --------------------------------------------------
@@ -363,14 +364,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // STEP 3: Start Timer
-        sequenceState.startTime = Date.now();
-        sequenceState.textElement.innerText = "Watching Ad...";
+        //sequenceState.startTime = Date.now();
+        
+        sequenceState.waitingForBlur = true;
+        sequenceState.textElement.innerText = "Waiting for ad to open...";
 
         // Schedule Auto-Close
-        setTimeout(() => {
-            checkCompletion(true); // 'true' = attempt to close window
-        }, sequenceState.requiredTime);
+        //setTimeout(() => {
+            //checkCompletion(true); // 'true' = attempt to close window
+        //}, sequenceState.requiredTime);
     }
+    
+    // Triggered when the user switches TO the Ad Tab
+    window.addEventListener('blur', () => {
+        if (sequenceState.isActive && sequenceState.waitingForBlur) {
+            
+            sequenceState.waitingForBlur = false; // We switched!
+            sequenceState.startTime = Date.now(); // START TIMER NOW
+            sequenceState.textElement.innerText = "Watching Ad...";
+            
+            // Schedule Auto-Close based on the timer starting NOW
+            setTimeout(() => {
+                checkCompletion(true);
+            }, sequenceState.requiredTime);
+        }
+    });
 
     // --------------------------------------------------
     // CHECK COMPLETION & EARLY RETURN LOGIC
@@ -379,12 +397,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if user came back manually
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible" && sequenceState.isActive && sequenceState.startTime > 0) {
+            if (sequenceState.startTime === 0 || sequenceState.waitingForBlur) {
+                sequenceState.textElement.innerText = "Ad load failed. Click to try again.";
+                sequenceState.isActive = false; // RESET STATE: Makes button clickable again
+                sequenceState.waitingForBlur = false;
+                return;
+            }
+            
             checkCompletion(false);
         }
     });
 
     function checkCompletion(autoClose) {
         if (!sequenceState.isActive) return;
+        
+        if (sequenceState.waitingForBlur || sequenceState.startTime === 0) {
+            return; 
+        }
 
         const elapsed = Date.now() - sequenceState.startTime;
 
@@ -409,7 +438,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- FAIL: TOO EARLY ---
             if (!autoClose) { // Only show this if user came back manually, not on timer check
                 const remaining = Math.ceil((sequenceState.requiredTime - elapsed) / 1000);
-                sequenceState.textElement.innerText = `Too early! Watch for ${remaining} more second(s)`;
+                sequenceState.textElement.innerText = `Too early! (${remaining}s left). Click to retry.`;
+                
+                // RESET STATE: This allows the user to click the button again
+                // which will trigger startAdSequence() and restart the whole process.
+                sequenceState.isActive = false; 
+                sequenceState.startTime = 0;
             }
         }
     }
